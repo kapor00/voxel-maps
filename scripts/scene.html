@@ -118,7 +118,7 @@
 
   <script>
     // ── edit these ──
-    const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'strata', frame: 'crop' };
+    const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'clay', frame: 'crop' };
     const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
     const SCENE = { ui: true, backdrop: true, worldWidth: 614 }; // show the panel, a backdrop that follows the theme, world units across
     const BUNDLE = 'https://cdn.jsdelivr.net/gh/kapor00/place-to-3d@main/scripts/place-scene.bundle.js';
@@ -444,9 +444,14 @@
       P.append(section('Light', [
         keep(colorRow('Sun', () => S.fx.key, (v) => { S.fx.key = v; view?.setFx(S.fx); })),
         keep(colorRow('Shade', () => S.fx.fill, (v) => { S.fx.fill = v; view?.setFx(S.fx); })),
+        grade('Gradient', 'grad', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
+        keep(colorRow('Depth', () => S.fx.deep, (v) => { S.fx.deep = v; view?.setFx(S.fx); })),
+        grade('Rim', 'rim', 0, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
+        keep(colorRow('Rim colour', () => S.fx.rimColor, (v) => { S.fx.rimColor = v; view?.setFx(S.fx); })),
+        grade('Sheen', 'sheen', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
         grade('Windows', 'windows', 0, 0.6, 0.01, (v) => Math.round(v * 100) + '%'),
         keep(toggle('Glow roads', () => S.fx.glow > 0, (v) => { S.fx.glow = v ? 1 : 0; view?.setFx(S.fx); })),
-      ], false));
+      ]));
 
       P.append(section('Camera', [
         keep(toggle('Orbit', () => (orbit?.state.speed || 0) > 0, (v) => orbit?.set({ speed: v ? ORBIT.speed || 5 : 0 }))),

@@ -30,7 +30,8 @@ The scene carries a panel in Spline's own sidebar style, and everything on
 it applies live. The voxels are built on the GPU, so you can **drag the map
 inside the volume** and keep going: the next area streams in as you near the
 edge. Pick one of 17 featured places or search any other; change the
-height, slab, vitrine and shape, switch among 11 themes, recolour a class
+height, slab, vitrine and shape, switch among 12 themes (the default, Clay, is Spline's toy look: candy
+colours, wall gradients, a fresnel rim), recolour a class
 from one swatch, or shift hue, saturation, warmth and contrast, and it
 changes on the next frame. **Save .glb** downloads exactly
 what's on screen for the editor, **Copy link** shares the place, and **Copy

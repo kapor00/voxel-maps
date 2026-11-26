@@ -145,11 +145,13 @@ export async function createPlaceView(spline, o) {
         const wall = T.float(1).sub(T.step(0.5, T.normalWorld.y));
         const below = wall.mul(T.step(T.positionWorld.y, vTerr.sub(U.voxel.mul(0.02))));
         const v = T.mix(vRow, T.mix((ROW.land + 0.5) / ROW_COUNT, (ROW.cut + 0.5) / ROW_COUNT, T.step(0.5, vEdge)), below);
-        return { v, u: vU };
+        return { v, u: vU, g: T.varying(topV) }; // g: 0 at a wall's foot, 1 at its top (the clay gradient)
       },
     })
   );
   const controls = material.placeControls || null;
+  const terrainTop = () => (baseOf() + ((enc.hmax - hmin) / cellM) * exagOf()) * vx;
+  controls?.set({ top: terrainTop() });
 
   // ── objects: the template meshes, the crop's pedestal and vitrine, a backdrop ──
   const group = await spline.createObject('Group', { name: `Place: ${P.name}` });
@@ -209,7 +211,7 @@ export async function createPlaceView(spline, o) {
       Object.assign(P, s);
       G.exag.value = exagOf(); G.base.value = baseOf(); G.trees.value = P.trees ? 1 : 0; G.crop.value = P.frame === 'crop' ? 1 : 0;
       G.span.value = Math.max(1, (span0 / cellM) * exagOf()); G.rows.value = rowsOf(); G.z0.value = Math.floor((n - rowsOf()) / 2);
-      controls?.set({ band: Math.max(2, Math.round(baseOf() / 5)), fade: P.frame === 'immersive' ? { radius: (n * vx) / 2, start: 0.55 } : null });
+      controls?.set({ top: terrainTop(), band: Math.max(2, Math.round(baseOf() / 5)), fade: P.frame === 'immersive' ? { radius: (n * vx) / 2, start: 0.55 } : null });
       if ('frame' in s || 'aspect' in s || 'vitrine' in s || 'exag' in s || 'slab' in s) await rebuildFrame();
     },
     /** The look: a whole style (palette rows + uniforms), or just uniform values. */

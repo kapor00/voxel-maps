@@ -74,6 +74,7 @@ export function theme(t) {
     label: t.label, background: t.background, frame: t.frame || shift(t.background, 0, -0.2, 0.55), pedestal: t.pedestal || shift(t.background, 0, 0, -0.03),
     fallback: t.ground, key: t.key || '#ffffff', fill: t.fill || '#6a6f9c', edge: t.edge ?? 0.8, sky: t.sky || '#cfe3f5',
     steps: ['building', 'roof'], tints: t.tints || [], glow: t.glow, windows: t.windows, water: t.waterFx === false ? false : undefined,
+    ...Object.fromEntries(['hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'deep', 'rim', 'rimColor', 'sheen'].filter((k) => t[k] != null).map((k) => [k, t[k]])),
     rows: {
       cut: t.strata,
       land: [t.ground, mixHex(t.ground, t.high, 0.25), mixHex(t.ground, t.high, 0.5), mixHex(t.ground, t.high, 0.75), t.high, t.snow],
@@ -190,6 +191,17 @@ export const STYLES = {
     },
     flat: { ground: '#f4f7fb', side: '#9fb0c8', water: '#1d3550', road: '#a6aeba', building: '#c96e4a', roof: '#ffffff', tree: '#2a5a42', cut: ['#5d6a84', '#7a88a4'] },
   },
+  /** Clay: Spline's toy look — saturated candy colours that deepen toward violet at the foot of every wall, a pink rim, on black. */
+  clay: theme({
+    label: 'Clay', background: '#000000', frame: '#b8a4e8', pedestal: '#0b0614', ground: '#8c9cf2', high: '#c79cf5', snow: '#fff4fb', green: '#5fd39a', forest: '#2fae7c',
+    fields: '#ffcf6e', sand: '#ffd08f', rock: '#c77ef0', cliff: '#8f6cf0', water: ['#62d7ff', '#4a2fd0'], road: '#ffffff',
+    key: '#fff6fb', fill: '#6f58d0', sky: '#ffdcf6',
+    walls: ['#ffd6e4', '#e6d4ff', '#ffe2ef', '#d9c8ff', '#ffe6c4', '#bfe6ff'],
+    roofs: ['#ff7aa2', '#c76ff3', '#ff95b8', '#a774f2', '#ffae42', '#e8f2ff'],
+    strata: ['#c76ff3', '#7630bb', '#ff8fb4', '#5136a4', '#ff9baf', '#983c64'],
+    edge: 0.9, sat: 1.12, contrast: 1.06, grad: 0.75, deep: '#3a1678', rim: 0.7, rimColor: '#ffdcf6', sheen: 0.55,
+    tints: [{ color: '#a9b8ff', amount: 0.2 }, { color: '#c9a8f8', amount: 0.15 }],
+  }),
   pastel: theme({
     label: 'Pastel', background: '#efe9f4', ground: '#cfe3c8', high: '#f1dcc4', snow: '#ffffff', green: '#a6d8a0', forest: '#7fc28d', fields: '#e8e3a4',
     sand: '#f7e6c4', rock: '#e0b9b0', cliff: '#e9c9d8', water: ['#bfeaf0', '#7fb6e6'], road: '#c9c4d6', key: '#ffffff', fill: '#b9b6d8', sky: '#ffffff',
@@ -273,6 +285,9 @@ export function styleUniformValues(style) {
     tints: [0, 1, 2, 3].map((i) => ({ color: t[i]?.color || '#000000', amount: t[i]?.amount ?? 0 })),
     tint: 1,
     hue: style.hue ?? 0, sat: style.sat ?? 1, bright: style.bright ?? 1, contrast: style.contrast ?? 1, warm: style.warm ?? 0,
+    // the clay look: each wall runs light → deep (toward `deep`), a fresnel rim, a soft studio sheen
+    grad: style.grad ?? 0.45, deep: style.deep || '#2a1458', rim: style.rim ?? 0.35, rimColor: style.rimColor || style.sky || '#ffffff',
+    sheen: style.sheen ?? 0.3,
   };
 }
 
@@ -302,11 +317,14 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     fade: T.uniform(fade ? 1 : 0), fadeRadius: T.uniform(fade?.radius ?? 1), fadeStart: T.uniform(fade?.start ?? 0.55),
     tints: v0.tints.map((t) => ({ color: T.uniform(col(t.color)), amount: T.uniform(t.amount) })),
     hue: T.uniform(v0.hue), sat: T.uniform(v0.sat), bright: T.uniform(v0.bright), contrast: T.uniform(v0.contrast), warm: T.uniform(v0.warm),
+    grad: T.uniform(v0.grad), deep: T.uniform(col(v0.deep)), rim: T.uniform(v0.rim), rimColor: T.uniform(col(v0.rimColor)), sheen: T.uniform(v0.sheen),
+    top: T.uniform(voxel * 80), // world height the vertical gradient spans (gpu-view keeps it at the terrain's top)
   };
 
   const m = new three.MeshBasicNodeMaterial();
   const inp = hook ? hook(T, three, U, m) : null;
   const N = T.normalize(T.normalWorld), v = inp?.v ?? T.uv().y, Uv = inp?.u ?? T.uv().x;
+  const gWall = inp?.g ?? T.float(1); // 0 at the foot of a wall, 1 at its top (the GPU view knows; the CPU mesh doesn't)
   const rowMask = (name) => T.step(ROW[name] / ROW_COUNT, v).mul(T.float(1).sub(T.step((ROW[name] + 1) / ROW_COUNT, v)));
   const hash = (x) => T.fract(T.sin(x.mul(12.9898).add(4.1414)).mul(43758.5453));
   const hash2 = (p) => T.fract(T.sin(T.dot(p, T.vec2(127.1, 311.7))).mul(43758.5453));
@@ -359,6 +377,18 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     unlit = unlit.add(lit);
   }
 
+  // clay gradient: every wall runs from its colour at the top to a deeper, more saturated, violet-leaning
+  // shade at its foot (like Spline's depth layers); low ground sits a little deeper than high ground
+  {
+    const gWorld = T.clamp(T.positionWorld.y.div(U.top), 0, 1);
+    const topT = T.mix(T.float(0.6).add(gWorld.mul(0.4)), 1, isBuilding);
+    const tt = T.mix(topT, T.mix(gWall.mul(T.float(0.55).add(gWorld.mul(0.45))), gWall, isBuilding), side); // towers run full height
+    let deep = T.mix(c.mul(0.56), U.deep, 0.24);
+    const dl = T.dot(deep, T.vec3(0.299, 0.587, 0.114));
+    deep = T.clamp(T.mix(T.vec3(dl, dl, dl), deep, 1.3), 0, 1);
+    c = T.mix(c, deep, T.float(1).sub(tt).mul(U.grad).mul(T.float(1).sub(rowMask('water').mul(T.float(1).sub(side)))));
+  }
+
   // light: warm key from the upper left, cool fill in the shade, a little extra on tops
   const L = T.normalize(T.vec3(-0.55, 0.78, 0.3));
   const wrap = T.clamp(T.dot(N, L).mul(0.6).add(0.45), 0, 1);
@@ -396,7 +426,16 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
   // strata: a fine dark line between bands, also faded with distance
   const bandLine = T.smoothstep(T.float(1).sub(w.y.mul(1.5)).sub(0.02), 1, T.fract(level.add(T.fract(q.y)).div(U.band))).mul(isCut).mul(edgeFade);
 
-  const lit = c.mul(light).mul(edge).mul(T.float(1).sub(bandLine.mul(0.25)));
+  let lit = c.mul(light).mul(edge).mul(T.float(1).sub(bandLine.mul(0.25)));
+  // studio sheen (a matcap-like soft highlight in view space, screen-blended) and a fresnel rim
+  {
+    const nv = T.normalize(T.normalView);
+    const sh = T.smoothstep(0.35, 1.0, T.dot(nv, T.normalize(T.vec3(-0.62, 0.25, 0.75)))); // faces turned toward the camera's left
+    lit = lit.add(T.float(1).sub(lit).mul(sh.mul(U.sheen).mul(0.45)));
+    const Vr = T.normalize(T.cameraPosition.sub(T.positionWorld));
+    const fr = T.pow(T.float(1).sub(T.clamp(T.dot(N, Vr), 0, 1)), 3);
+    lit = lit.add(U.rimColor.mul(fr.mul(U.rim).mul(T.mix(0.2, 1, side)))); // mostly on walls: on tops it would wash the map
+  }
   let out = T.mix(lit, c, T.clamp(unlit, 0, 1));
   out = T.mix(out, water, waterTop); // water is lit by its own reflection, not the voxel light
 
@@ -413,8 +452,8 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     uniforms: U,
     /** Live tweaks: any of styleUniformValues' keys, plus voxel, band, fade { radius, start } | null. */
     set(o) {
-      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint', 'hue', 'sat', 'bright', 'contrast', 'warm']) if (o[k2] != null) U[k2].value = +o[k2];
-      for (const k2 of ['key', 'fill', 'sky', 'background', 'windowColor']) if (o[k2]) setColor(U[k2], o[k2]);
+      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint', 'hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'rim', 'sheen', 'top']) if (o[k2] != null) U[k2].value = +o[k2];
+      for (const k2 of ['key', 'fill', 'sky', 'background', 'windowColor', 'deep', 'rimColor']) if (o[k2]) setColor(U[k2], o[k2]);
       if (o.tints) o.tints.forEach((t, i) => { if (U.tints[i]) { setColor(U.tints[i].color, t.color); U.tints[i].amount.value = t.amount; } });
       if (o.fade !== undefined) { U.fade.value = o.fade ? 1 : 0; if (o.fade) { U.fadeRadius.value = o.fade.radius; U.fadeStart.value = o.fade.start ?? 0.55; } }
     },

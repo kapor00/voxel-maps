@@ -1,6 +1,6 @@
 // Featured places for the scene panel: centre, ground size and a theme that suits them.
 export const PLACES = [
-  { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, style: 'strata', group: 'Cities' },
+  { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, style: 'clay', group: 'Cities' },
   { name: 'Manhattan', lat: 40.7484, lon: -73.9857, sizeM: 4000, style: 'night', group: 'Cities' },
   { name: 'Paris', lat: 48.8566, lon: 2.3415, sizeM: 4000, style: 'strata', group: 'Cities' },
   { name: 'London', lat: 51.5045, lon: -0.1232, sizeM: 3500, style: 'ink', group: 'Cities' },

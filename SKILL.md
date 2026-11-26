@@ -116,7 +116,7 @@ Call `3d_set_html_content` with [`scripts/scene.html`](scripts/scene.html),
 editing only the `PLACE`, `ORBIT` and `SCENE` lines:
 
 ```js
-const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'strata', frame: 'crop' };
+const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'clay', frame: 'crop' };
 const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
 const SCENE = { ui: true, backdrop: true, worldWidth: 614 };
 ```
@@ -136,8 +136,10 @@ const SCENE = { ui: true, backdrop: true, worldWidth: 614 };
 above the ground, higher for tall places). Crop: `dist` 1.4–2.0, `pitch`
 20–30. Immersive: `dist` 0.55–0.7, `pitch` 22–28.
 
-`style` is one of `strata`, `model`, `night`, `snow`, `pastel`, `desert`,
-`autumn`, `tropical`, `blueprint`, `neon`, `ink`. `n` is 256, 384 (default)
+`style` is one of `clay` (the default: Spline's toy look, candy colours that
+deepen toward violet at the foot of every wall, a pink rim, on black),
+`strata`, `model`, `night`, `snow`, `pastel`, `desert`, `autumn`,
+`tropical`, `blueprint`, `neon`, `ink`. `n` is 256, 384 (default)
 or 512 cells across the window.
 
 `SCENE`: `ui: false` hides the panel (for a clean published embed);
@@ -161,12 +163,16 @@ own sidebar, and every control applies live, with no Build button:
   theme that suits it), search (Enter; it geocodes once per search, never per
   keystroke), the window's centre, Size, Detail. Only these fetch new data.
 - Shape: Frame, Shape (aspect), Height, Slab, Vitrine, Trees: instant.
-- Theme: one click among 11. Colors: eight key swatches (ground, greens,
+- Theme: one click among 12. Colors: eight key swatches (ground, greens,
   water, roads, walls, roofs, strata, backdrop; each recolours its whole
   class, variants included) and hue, saturation, brightness, contrast,
   warmth, edges and tints. "Every colour" has each class's full palette.
-- Water, Light, Camera: waves, reflection, foam, glints, sky, sun and shade,
-  lit windows, glowing roads, orbit speed, distance and angle.
+- Light: sun and shade; the clay lighting — Gradient (how deep each wall
+  runs toward its foot), Depth (the colour it deepens to), Rim and Rim
+  colour (a fresnel glow on the walls), Sheen (a soft studio highlight); lit
+  windows, glowing roads. Every theme has them; `clay` turns them up.
+- Water, Camera: waves, reflection, foam, glints, sky; orbit speed, distance
+  and angle.
 - Export: Save .glb (exactly what's on screen, with the edited colours),
   Copy link (`?place=lat,lon,km&style=&frame=`, which the scene reads on
   load), Copy settings (the PLACE and ORBIT lines for this look: ask the user
