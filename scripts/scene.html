@@ -4,59 +4,85 @@
   <meta charset="utf-8">
   <style>
     html, body { background: transparent; margin: 0; }
-    #place-status { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); font: 12px/1.4 system-ui, sans-serif; color: #fff;
-      background: rgba(0, 0, 0, .55); padding: 6px 12px; border-radius: 999px; pointer-events: none; }
+    #place-status { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); font: 11px/1.4 'Spline Sans', Inter, system-ui, sans-serif; color: #fff;
+      background: rgba(30, 30, 30, .9); padding: 6px 12px; border-radius: 999px; pointer-events: none; box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
     #place-status:empty { display: none; }
-    #place-attribution { position: fixed; right: 10px; bottom: 8px; font: 10px/1.3 system-ui, sans-serif; color: rgba(255, 255, 255, .75); }
-    #place-ui { position: fixed; left: 14px; top: 14px; width: 248px; font: 12px/1.35 system-ui, sans-serif; color: #eceaf4;
-      background: rgba(16, 13, 26, .78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, .09); border-radius: 12px; padding: 10px 12px 12px; box-sizing: border-box; }
-    #place-ui.closed .body { display: none; }
-    #place-ui header { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; }
-    #place-ui header button { all: unset; cursor: pointer; opacity: .7; padding: 0 2px; }
-    #place-ui .body { margin-top: 8px; display: grid; gap: 8px; }
-    #place-ui label { display: grid; grid-template-columns: 64px 1fr 52px; align-items: center; gap: 6px; color: #b9b4cc; }
-    #place-ui label.wide { grid-template-columns: 64px 1fr; }
-    #place-ui output { text-align: right; color: #eceaf4; font-variant-numeric: tabular-nums; }
-    #place-ui input[type=text], #place-ui select { width: 100%; box-sizing: border-box; background: rgba(255, 255, 255, .07); color: #fff;
-      border: 1px solid rgba(255, 255, 255, .12); border-radius: 7px; padding: 6px 8px; font: inherit; outline: none; }
-    #place-ui input[type=range] { width: 100%; accent-color: #f0a35a; }
-    #place-ui .row { display: flex; gap: 6px; }
-    #place-ui .row button { flex: 1; }
-    #place-ui button.btn { cursor: pointer; border: 0; border-radius: 7px; padding: 7px 8px; font: inherit; font-weight: 600;
-      background: #f0a35a; color: #1a1020; }
-    #place-ui button.ghost { background: rgba(255, 255, 255, .1); color: #fff; font-weight: 500; }
-    #place-ui .results { display: grid; gap: 2px; }
-    #place-ui .results button { all: unset; cursor: pointer; padding: 5px 7px; border-radius: 6px; color: #e7e3f2; }
-    #place-ui .results button:hover { background: rgba(255, 255, 255, .1); }
-    #place-ui .muted { color: #8f89a6; font-size: 11px; }
-    #place-ui fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
-    #place-ui fieldset[disabled] { opacity: .4; }
+    #place-attribution { position: fixed; left: 10px; bottom: 8px; font: 10px/1.3 system-ui, sans-serif; color: rgba(255, 255, 255, .7); }
+
+    /* ── the panel: Spline's own right-sidebar look (shared/ui variables.css) ── */
+    #pt { --bg: #1e1e1e; --el1: rgba(255, 255, 255, .03); --el2: rgba(255, 255, 255, .05); --el3: rgba(255, 255, 255, .09);
+      --t1: rgba(255, 255, 255, .92); --t2: rgba(255, 255, 255, .7); --t3: rgba(255, 255, 255, .52); --line: rgba(255, 255, 255, .06); --blue: #2b99ff;
+      position: fixed; right: 12px; top: 12px; width: 248px; max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box;
+      background: var(--bg); color: var(--t1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .04);
+      font: 11px/1.3 'Spline Sans', Inter, system-ui, -apple-system, sans-serif; user-select: none; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+    #pt[hidden] { display: none; }
+    #pt * { box-sizing: border-box; }
+    #pt .top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; position: sticky; top: 0; background: var(--bg); z-index: 2; }
+    #pt .top b { font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #pt .top .tag { color: var(--t3); background: var(--el2); border-radius: 4px; padding: 2px 6px; font-size: 10px; }
+    #pt .icon { all: unset; cursor: pointer; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 5px; color: var(--t2); }
+    #pt .icon:hover { background: var(--el2); color: var(--t1); }
+    #pt .sec { border-top: 1px solid var(--line); }
+    #pt .sec > h3 { margin: 0; padding: 10px 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    #pt .sec > h3::after { content: ''; width: 6px; height: 6px; border-right: 1.5px solid var(--t3); border-bottom: 1.5px solid var(--t3); transform: rotate(45deg) translate(-2px, -2px); transition: transform .15s; }
+    #pt .sec.closed > h3::after { transform: rotate(-45deg); }
+    #pt .sec .body { padding: 0 12px 10px; display: grid; gap: 4px; }
+    #pt .sec.closed .body { display: none; }
+    #pt .row { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 8px; min-height: 26px; }
+    #pt .row > span { color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #pt .ctl { display: flex; gap: 6px; align-items: center; min-width: 0; }
+    #pt .box { background: var(--el2); border-radius: 6px; height: 24px; display: flex; align-items: center; padding: 0 7px; min-width: 0; }
+    #pt .box:focus-within { box-shadow: inset 0 0 0 1px var(--blue); }
+    #pt input.num, #pt input.txt { all: unset; width: 100%; color: var(--t1); font: inherit; font-variant-numeric: tabular-nums; cursor: text; }
+    #pt .num-box { width: 52px; flex: none; cursor: ew-resize; }
+    #pt .num-box input { text-align: right; }
+    #pt input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 24px; background: transparent; margin: 0; cursor: pointer; }
+    #pt input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: linear-gradient(var(--blue), var(--blue)) 0/var(--p, 50%) 100% no-repeat, var(--el3); }
+    #pt input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: #fff; margin-top: -4px; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+    #pt input[type=range]::-moz-range-track { height: 3px; border-radius: 2px; background: var(--el3); }
+    #pt input[type=range]::-moz-range-progress { height: 3px; border-radius: 2px; background: var(--blue); }
+    #pt input[type=range]::-moz-range-thumb { width: 11px; height: 11px; border: 0; border-radius: 50%; background: #fff; }
+    #pt .seg { display: flex; background: var(--el2); border-radius: 6px; padding: 2px; gap: 2px; flex: 1; }
+    #pt .seg button { all: unset; flex: 1; text-align: center; height: 20px; line-height: 20px; border-radius: 4px; color: var(--t2); cursor: pointer; white-space: nowrap; }
+    #pt .seg button.on { background: var(--el3); color: var(--t1); box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+    #pt select { all: unset; flex: 1; background: var(--el2); border-radius: 6px; height: 24px; padding: 0 22px 0 8px; color: var(--t1); cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, var(--t3) 50%), linear-gradient(135deg, var(--t3) 50%, transparent 50%);
+      background-position: calc(100% - 12px) 10px, calc(100% - 8px) 10px; background-size: 4px 4px; background-repeat: no-repeat; }
+    #pt .toggle { all: unset; width: 26px; height: 15px; border-radius: 8px; background: var(--el3); position: relative; cursor: pointer; transition: background .15s; }
+    #pt .toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: left .15s; }
+    #pt .toggle.on { background: var(--blue); }
+    #pt .toggle.on::after { left: 13px; }
+    #pt .swatches { display: flex; gap: 3px; flex-wrap: wrap; }
+    #pt .sw { position: relative; width: 18px; height: 18px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); cursor: pointer; overflow: hidden; flex: none; }
+    #pt .sw input { position: absolute; inset: -6px; width: 30px; height: 30px; opacity: 0; cursor: pointer; }
+    #pt .btn { all: unset; height: 28px; border-radius: 7px; background: var(--el2); color: var(--t1); text-align: center; cursor: pointer; flex: 1; font-weight: 500; }
+    #pt .btn:hover { background: var(--el3); }
+    #pt .btn.primary { background: var(--blue); color: #fff; }
+    #pt .btn.primary:hover { filter: brightness(1.08); }
+    #pt .btns { display: flex; gap: 6px; }
+    #pt .search .box { height: 28px; }
+    #pt .search svg { flex: none; margin-right: 6px; opacity: .55; }
+    #pt .results { display: grid; gap: 1px; margin-top: 4px; }
+    #pt .results:empty { display: none; }
+    #pt .results button { all: unset; cursor: pointer; padding: 6px 8px; border-radius: 6px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #pt .results button:hover { background: var(--el2); color: var(--t1); }
+    #pt .muted { color: var(--t3); }
+    #pt .stats { padding: 8px 12px 12px; color: var(--t3); border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
+    #pt .dot { width: 6px; height: 6px; border-radius: 50%; background: #3ecf6e; display: inline-block; margin-right: 6px; vertical-align: 1px; }
+    #pt .dot.busy { background: #ffb020; }
+    #pt-open { position: fixed; right: 12px; top: 12px; width: 32px; height: 32px; border-radius: 9px; background: #1e1e1e; color: rgba(255, 255, 255, .8); border: 0;
+      display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
+    #pt-open[hidden] { display: none; }
   </style>
 </head>
 <body>
   <div id="place-status">Loading map data…</div>
   <div id="place-attribution"></div>
-  <div id="place-ui" hidden>
-    <header><span id="ui-title">Place to 3D</span><button id="ui-toggle" title="Show or hide">–</button></header>
-    <div class="body">
-      <input id="ui-search" type="text" placeholder="Search a place and press Enter" autocomplete="off">
-      <div id="ui-results" class="results"></div>
-      <label>Size<input id="ui-size" type="range" min="0" max="100" step="1"><output id="ui-size-v"></output></label>
-      <label>Detail<input id="ui-n" type="range" min="192" max="640" step="64"><output id="ui-n-v"></output></label>
-      <label>Height<input id="ui-exag" type="range" min="0.5" max="3" step="0.1"><output id="ui-exag-v"></output></label>
-      <label class="wide">Style<select id="ui-style"></select></label>
-      <label class="wide">Frame<select id="ui-frame"><option value="crop">Crop</option><option value="immersive">Immersive</option></select></label>
-      <fieldset id="ui-crop">
-        <label>Slab<input id="ui-base" type="range" min="2" max="16" step="1"><output id="ui-base-v"></output></label>
-        <label>Vitrine<input id="ui-vitrine" type="range" min="0" max="2" step="0.1"><output id="ui-vitrine-v"></output></label>
-        <label class="wide">Shape<select id="ui-aspect"><option value="1">Square</option><option value="1.5">3 : 2</option><option value="2">2 : 1</option></select></label>
-      </fieldset>
-      <div class="muted" id="ui-info"></div>
-      <div class="row"><button class="btn" id="ui-build">Build</button><button class="btn ghost" id="ui-orbit">Pause</button><button class="btn ghost" id="ui-share">Copy link</button></div>
-      <div class="row"><button class="btn ghost" id="ui-glb" title="Download this build as a .glb, then drag it into the Spline editor: real objects, one material per class">Save .glb for the editor</button></div>
-    </div>
-  </div>
+  <button id="pt-open" hidden title="Show the Place to 3D panel">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h10M2 10h10"/><circle cx="5" cy="4" r="1.6" fill="#1e1e1e"/><circle cx="9" cy="10" r="1.6" fill="#1e1e1e"/></svg>
+  </button>
+  <div id="pt" hidden></div>
+
   <script>
     // ── edit these ──
     const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop' };
@@ -73,111 +99,271 @@
       for (const k of ['style', 'frame']) if (q.get(k)) PLACE[k] = q.get(k);
     } catch {}
 
-    let built = null, stopOrbit = () => {}, busy = false, orbiting = true;
-    const build = async () => {
-      if (busy) return; busy = true;
+    // ── live state: what the panel edits ──
+    let SP, look, built = null, stopOrbit = () => {};
+    const S = {
+      exag: PLACE.exag, trees: PLACE.trees !== false, aspect: PLACE.aspect ?? 1, vitrine: PLACE.vitrine ?? 1,
+      slab: PLACE.base ? Math.round((PLACE.base / (PLACE.n || 512)) * 100) : 6,
+      fx: {}, orbit: { on: (ORBIT.speed ?? 5) > 0, speed: ORBIT.speed || 5, dist: ORBIT.dist, pitch: ORBIT.pitch ?? 27 },
+    };
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    const setLook = (key) => { look = clone(SP.STYLES[key] || SP.STYLES.strata); S.fx = SP.styleUniformValues(look); };
+
+    // three speeds of change: data (refetch), shape (rebuild from the cached data), look (uniforms: instant)
+    let job = Promise.resolve(), pending = null, dataDirty = true;
+    const setBusy = (b) => { const d = document.querySelector('#pt .dot'); if (d) d.classList.toggle('busy', b); };
+    const schedule = (kind) => {
+      if (kind === 'data') dataDirty = true;
+      clearTimeout(pending);
+      pending = setTimeout(() => { job = job.then(build); }, kind === 'data' ? 250 : 120);
+    };
+    async function build() {
+      setBusy(true);
       try {
+        const old = built, n = PLACE.n || 512;
+        const opts = {
+          ...PLACE, exag: S.exag, trees: S.trees, vitrine: S.vitrine, aspect: S.aspect, base: Math.round((n * S.slab) / 100),
+          voxel: SCENE.worldWidth / n, background: SCENE.background, look, onStatus: status,
+          raw: !dataDirty && old?.pack ? old.pack : undefined, material: old?.material,
+        };
         stopOrbit();
-        await SplinePlace.removePlace(spline, built);
-        built = null;
-        const voxel = SCENE.worldWidth / (PLACE.n || 512); // the place always spans the same width in the scene
-        built = await SplinePlace.buildPlaceScene(spline, { ...PLACE, voxel, background: SCENE.background, onStatus: status });
+        const next = await SP.buildPlaceScene(spline, opts);
+        await SP.removePlace(spline, old); // after: the new build is up before the old one goes, so nothing flashes
+        built = next; dataDirty = false;
+        built.controls?.set(S.fx);
         $('place-attribution').textContent = built.attribution; // required by the OSM licence
         status('');
-        const target = ORBIT.target || [0, Math.min(built.height * 0.35, built.extent * 0.25), 0];
-        const dist = ORBIT.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45);
-        if (orbiting) stopOrbit = await SplinePlace.orbitCamera(spline, { ...ORBIT, dist, target, extent: built.extent });
-        else stopOrbit = await SplinePlace.orbitCamera(spline, { ...ORBIT, dist, target, extent: built.extent, speed: 0 });
-        $('ui-info').textContent = `${built.name} · ${(built.voxels / 1e6).toFixed(1)}M voxels · ${Math.round(built.cellM)} m per voxel · ${((built.ms.data + built.ms.build) / 1000).toFixed(1)} s`;
-      } catch (e) { status('Could not build the place: ' + (e && e.message || e)); }
-      busy = false;
-    };
+        startOrbit();
+        refreshStats();
+      } catch (e) { status('Could not build the place: ' + ((e && e.message) || e)); }
+      setBusy(false);
+    }
+    async function startOrbit() {
+      if (!built) return;
+      stopOrbit();
+      const target = ORBIT.target || [0, Math.min(built.height * 0.35, built.extent * 0.25), 0];
+      const dist = S.orbit.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45);
+      stopOrbit = await SP.orbitCamera(spline, { ...ORBIT, dist, pitch: S.orbit.pitch, target, extent: built.extent, speed: S.orbit.on ? S.orbit.speed : 0 });
+    }
+    const applyLook = () => built?.controls?.set(S.fx);
 
-    // ── the panel ──
-    const sizeToM = (v) => Math.round(500 * Math.pow(80, v / 100)); // 0.5 km … 40 km, logarithmic
-    const mToSize = (m) => Math.round((100 * Math.log(m / 500)) / Math.log(80));
-    const show = () => {
-      $('ui-size-v').textContent = (sizeToM(+$('ui-size').value) / 1000).toFixed(1) + ' km';
-      $('ui-n-v').textContent = $('ui-n').value; $('ui-exag-v').textContent = (+$('ui-exag').value).toFixed(1) + '×';
-      $('ui-base-v').textContent = $('ui-base').value + '%'; $('ui-vitrine-v').textContent = (+$('ui-vitrine').value).toFixed(1) + '×';
-      $('ui-crop').disabled = $('ui-frame').value !== 'crop';
-    };
-    const readPanel = () => {
-      const n = +$('ui-n').value;
-      Object.assign(PLACE, {
-        sizeM: sizeToM(+$('ui-size').value), n, exag: +$('ui-exag').value, style: $('ui-style').value, frame: $('ui-frame').value,
-        base: Math.round((n * +$('ui-base').value) / 100), vitrine: +$('ui-vitrine').value, aspect: +$('ui-aspect').value,
+    // ── panel widgets ──
+    const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+    const row = (label, ...kids) => { const r = el('div', 'row'); r.append(el('span', '', label)); const c = el('div', 'ctl'); c.append(...kids); r.append(c); return r; };
+    function slider(label, { min, max, step, get, set, fmt = (v) => v, live = true }) {
+      const r = el('input'); r.type = 'range'; Object.assign(r, { min, max, step });
+      const b = el('div', 'box num-box'), n = el('input', 'num'); b.append(n);
+      const fill = (v) => r.style.setProperty('--p', ((v - min) / (max - min)) * 100 + '%');
+      const paint = () => { const v = get(); r.value = v; n.value = fmt(+v); fill(v); };
+      const put = (v) => { if (!Number.isFinite(v)) return paint(); v = Math.min(max, Math.max(min, Math.round(v / step) * step)); set(+v.toFixed(4)); paint(); };
+      if (live) r.addEventListener('input', () => put(+r.value));
+      else { r.addEventListener('input', () => { n.value = fmt(+r.value); fill(+r.value); }); r.addEventListener('change', () => put(+r.value)); }
+      n.addEventListener('change', () => put(parseFloat(n.value)));
+      // drag the number box sideways to scrub, like Spline's fields; a click types
+      b.addEventListener('pointerdown', (e) => {
+        if (document.activeElement === n) return;
+        const x0 = e.clientX, v0 = +get(); let moved = false;
+        const mv = (ev) => { const dx = ev.clientX - x0; if (Math.abs(dx) > 2) moved = true; if (moved) put(v0 + (dx / 160) * (max - min)); };
+        const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); if (!moved) { n.focus(); n.select(); } };
+        addEventListener('pointermove', mv); addEventListener('pointerup', up); e.preventDefault();
       });
-    };
-    const initPanel = () => {
+      paint();
+      const out = row(label, r, b); out.paint = paint; return out;
+    }
+    function seg(label, options, get, set) {
+      const s = el('div', 'seg');
+      const paint = () => [...s.children].forEach((b) => b.classList.toggle('on', String(get()) === b.dataset.v));
+      for (const [v, t] of options) { const b = el('button', '', t); b.dataset.v = String(v); b.onclick = () => { set(v); paint(); }; s.append(b); }
+      paint();
+      const out = row(label, s); out.paint = paint; return out;
+    }
+    function toggle(label, get, set) {
+      const t = el('button', 'toggle');
+      const paint = () => t.classList.toggle('on', !!get());
+      t.onclick = () => { set(!get()); paint(); };
+      paint();
+      const out = row(label, t); out.paint = paint; return out;
+    }
+    function colorRow(label, get, set) {
+      const w = el('label', 'sw'), i = el('input'); i.type = 'color';
+      const hex = el('div', 'box'), h = el('input', 'txt'); hex.append(h); hex.style.flex = '1';
+      const paint = () => { const v = get(); w.style.background = v; i.value = v; h.value = v.toUpperCase(); };
+      i.addEventListener('input', () => { set(i.value); paint(); });
+      h.addEventListener('change', () => { if (/^#?[0-9a-f]{6}$/i.test(h.value)) set('#' + h.value.replace('#', '').toLowerCase()); paint(); });
+      w.append(i); paint();
+      const out = row(label, w, hex); out.paint = paint; return out;
+    }
+    // a palette row: the class's colour stops as swatches; editing one recolours that class live
+    function paletteRow(label, rowKey) {
+      const s = el('div', 'swatches');
+      const paint = () => {
+        s.innerHTML = '';
+        (look.rows[rowKey] || []).forEach((c, i) => {
+          const w = el('label', 'sw'), inp = el('input'); inp.type = 'color'; inp.value = c; w.style.background = c; w.title = c;
+          inp.addEventListener('input', () => { look.rows[rowKey][i] = inp.value; w.style.background = inp.value; built?.controls?.setStyle(look); applyLook(); });
+          w.append(inp); s.append(w);
+        });
+      };
+      paint();
+      const out = row(label, s); out.paint = paint; return out;
+    }
+    function section(title, kids, open = true) {
+      const s = el('div', 'sec' + (open ? '' : ' closed')), h = el('h3', '', title), b = el('div', 'body');
+      h.onclick = () => s.classList.toggle('closed');
+      b.append(...kids); s.append(h, b); return s;
+    }
+
+    const sizeToM = (v) => Math.round(500 * Math.pow(80, v / 100)); // 0.5 km … 40 km, logarithmic
+    const mToSize = (m) => (100 * Math.log(m / 500)) / Math.log(80);
+    const paints = [];
+    const keep = (r) => (paints.push(r), r);
+    const repaint = () => paints.forEach((p) => p.paint?.());
+    function refreshStats() {
+      const s = $('pt-stats'); if (!s || !built) return;
+      s.innerHTML = `<span id="ui-info"><i class="dot"></i>${(built.voxels / 1e6).toFixed(1)}M voxels · ${Math.round(built.cellM)} m</span><span>${((built.ms.data + built.ms.build) / 1000).toFixed(1)} s</span>`;
+      $('pt-title').textContent = (PLACE.name || 'Place').split(',')[0];
+    }
+
+    function initPanel() {
       if (!SCENE.ui) return;
-      $('place-ui').hidden = false;
-      $('ui-style').innerHTML = Object.entries(SplinePlace.STYLES).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
-      $('ui-size').value = mToSize(PLACE.sizeM || 4000); $('ui-n').value = PLACE.n || 512;
-      $('ui-exag').value = PLACE.exag ?? ((PLACE.sizeM || 4000) / (PLACE.n || 512) > 25 ? 1.6 : 1.2);
-      $('ui-style').value = PLACE.style || 'strata'; $('ui-frame').value = PLACE.frame || 'crop';
-      $('ui-base').value = PLACE.base ? Math.round((PLACE.base / (PLACE.n || 512)) * 100) : 6;
-      $('ui-vitrine').value = PLACE.vitrine ?? 1; $('ui-aspect').value = String(PLACE.aspect || 1);
-      $('ui-title').textContent = PLACE.name || 'Place to 3D';
-      show();
-      for (const el of document.querySelectorAll('#place-ui input[type=range], #place-ui select')) el.addEventListener('input', show);
-      $('ui-toggle').onclick = () => { const c = $('place-ui').classList.toggle('closed'); $('ui-toggle').textContent = c ? '+' : '–'; };
-      $('ui-build').onclick = () => { readPanel(); build(); };
-      $('ui-orbit').onclick = async () => {
-        orbiting = !orbiting; $('ui-orbit').textContent = orbiting ? 'Pause' : 'Orbit';
-        if (!built) return; stopOrbit();
-        stopOrbit = await SplinePlace.orbitCamera(spline, { ...ORBIT, dist: ORBIT.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45), target: ORBIT.target || [0, Math.min(built.height * 0.35, built.extent * 0.25), 0], extent: built.extent, speed: orbiting ? ORBIT.speed : 0 });
+      const P = $('pt'); P.hidden = false; P.innerHTML = '';
+      const top = el('div', 'top', '<b id="pt-title"></b><span class="tag">Place to 3D</span>');
+      const hide = el('button', 'icon', '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4"><path d="M2 2l6 6M8 2L2 8"/></svg>');
+      hide.title = 'Hide the panel'; hide.onclick = () => { P.hidden = true; $('pt-open').hidden = false; };
+      $('pt-open').onclick = () => { P.hidden = false; $('pt-open').hidden = true; };
+      top.append(hide); P.append(top);
+
+      // Location: search, then size and detail (these refetch the map data)
+      const search = el('div', 'search');
+      const sb = el('div', 'box', '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="5" cy="5" r="3.6"/><path d="M8 8l2.6 2.6"/></svg>');
+      const q = el('input', 'txt'); q.id = 'ui-search'; q.placeholder = 'Search a place…'; q.autocomplete = 'off'; sb.append(q);
+      const results = el('div', 'results'); results.id = 'ui-results';
+      search.append(sb, results);
+      // search runs on Enter only: the geocoder is a shared service, not a search-as-you-type API
+      q.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter' || !q.value.trim()) return;
+        results.innerHTML = '<span class="muted">Searching…</span>';
+        try {
+          const hits = await SP.geocode(q.value.trim(), { limit: 5 });
+          results.innerHTML = hits.length ? '' : '<span class="muted">Nothing found</span>';
+          for (const h of hits) {
+            const b = el('button'); b.textContent = h.name; b.title = h.name;
+            b.onclick = () => {
+              Object.assign(PLACE, { name: h.name.split(',')[0], lat: h.lat, lon: h.lon });
+              if (h.extentM) PLACE.sizeM = Math.min(40000, Math.max(1000, h.extentM * 1.1));
+              S.exag = undefined; // back to the default for the new scale
+              results.innerHTML = ''; q.value = ''; repaint(); schedule('data');
+            };
+            results.append(b);
+          }
+        } catch (err) { results.innerHTML = `<span class="muted">Search failed: ${(err && err.message) || err}</span>`; }
+      });
+      P.append(section('Location', [
+        search,
+        keep(slider('Size', { min: 0, max: 100, step: 1, live: false, get: () => mToSize(PLACE.sizeM || 4000), set: (v) => { PLACE.sizeM = sizeToM(v); schedule('data'); }, fmt: (v) => (sizeToM(v) / 1000).toFixed(1) + ' km' })),
+        keep(seg('Detail', [[256, '256'], [384, '384'], [512, '512'], [640, '640']], () => PLACE.n || 512, (v) => { PLACE.n = v; schedule('data'); })),
+      ]));
+
+      // Shape: rebuilds from the cached data in well under a second
+      const exagDefault = () => ((PLACE.sizeM || 4000) / (PLACE.n || 512) > 25 ? 1.6 : 1.2);
+      P.append(section('Shape', [
+        keep(seg('Frame', [['crop', 'Crop'], ['immersive', 'Immersive']], () => PLACE.frame || 'crop', (v) => { PLACE.frame = v; schedule('geo'); })),
+        keep(seg('Shape', [[1, '1 : 1'], [1.5, '3 : 2'], [2, '2 : 1']], () => S.aspect, (v) => { S.aspect = v; schedule('geo'); })),
+        keep(slider('Height', { min: 0.3, max: 3, step: 0.1, get: () => S.exag ?? exagDefault(), set: (v) => { S.exag = v; schedule('geo'); }, fmt: (v) => v.toFixed(1) + '×' })),
+        keep(slider('Slab', { min: 2, max: 20, step: 1, get: () => S.slab, set: (v) => { S.slab = v; schedule('geo'); }, fmt: (v) => v + '%' })),
+        keep(slider('Vitrine', { min: 0, max: 2, step: 0.05, get: () => S.vitrine, set: (v) => { S.vitrine = v; schedule('geo'); }, fmt: (v) => v.toFixed(2) })),
+        keep(toggle('Trees', () => S.trees, (v) => { S.trees = v; schedule('geo'); })),
+      ]));
+
+      // Style: presets and every class colour, instant
+      const preset = el('select'); preset.id = 'ui-style';
+      preset.innerHTML = Object.entries(SP.STYLES).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
+      preset.value = PLACE.style || 'strata';
+      const palRows = [['Ground', 'land'], ['Grass', 'grass'], ['Forest', 'wood'], ['Fields', 'farmland'], ['Water', 'water'], ['Roads', 'road'], ['Walls', 'building'], ['Roofs', 'roof'], ['Trees', 'tree'], ['Cliffs', 'side'], ['Strata', 'cut'], ['Rock', 'rock'], ['Sand', 'sand'], ['Snow', 'ice']];
+      preset.onchange = async () => {
+        PLACE.style = preset.value; setLook(preset.value);
+        built?.controls?.setStyle(look); applyLook();
+        repaint();
+        if (built) await SP.restyleFrame(spline, built, look);
       };
-      $('ui-share').onclick = async () => {
-        readPanel();
-        const u = new URL(location.href);
-        u.searchParams.set('place', [PLACE.lat.toFixed(5), PLACE.lon.toFixed(5), (PLACE.sizeM / 1000).toFixed(1)].join(','));
-        u.searchParams.set('name', PLACE.name); u.searchParams.set('style', PLACE.style); u.searchParams.set('frame', PLACE.frame);
-        try { await navigator.clipboard.writeText(u.toString()); status('Link copied'); setTimeout(() => status(''), 1500); } catch { status(u.toString()); }
-      };
-      $('ui-glb').onclick = () => {
+      P.append(section('Style', [
+        row('Preset', preset),
+        keep(slider('Edges', { min: 0, max: 0.6, step: 0.01, get: () => 1 - S.fx.edge, set: (v) => { S.fx.edge = 1 - v; applyLook(); }, fmt: (v) => Math.round(v * 100) + '%' })),
+        keep(slider('Tints', { min: 0, max: 2, step: 0.05, get: () => S.fx.tint, set: (v) => { S.fx.tint = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
+        ...palRows.map(([l, k]) => keep(paletteRow(l, k))),
+      ]));
+
+      P.append(section('Water', [
+        keep(toggle('Effects', () => S.fx.water > 0, (v) => { S.fx.water = v ? 1 : 0; applyLook(); })),
+        keep(slider('Waves', { min: 0, max: 3, step: 0.05, get: () => S.fx.waves, set: (v) => { S.fx.waves = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
+        keep(slider('Reflection', { min: 0, max: 2, step: 0.05, get: () => S.fx.reflect, set: (v) => { S.fx.reflect = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
+        keep(slider('Foam', { min: 0, max: 2, step: 0.05, get: () => S.fx.foam, set: (v) => { S.fx.foam = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
+        keep(slider('Glints', { min: 0, max: 3, step: 0.05, get: () => S.fx.glints, set: (v) => { S.fx.glints = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
+        keep(colorRow('Sky', () => S.fx.sky, (v) => { S.fx.sky = v; applyLook(); })),
+      ], false));
+
+      P.append(section('Light', [
+        keep(colorRow('Sun', () => S.fx.key, (v) => { S.fx.key = v; applyLook(); })),
+        keep(colorRow('Shade', () => S.fx.fill, (v) => { S.fx.fill = v; applyLook(); })),
+        keep(slider('Windows', { min: 0, max: 0.6, step: 0.01, get: () => S.fx.windows, set: (v) => { S.fx.windows = v; applyLook(); }, fmt: (v) => Math.round(v * 100) + '%' })),
+        keep(toggle('Glow roads', () => S.fx.glow > 0, (v) => { S.fx.glow = v ? 1 : 0; applyLook(); })),
+      ], false));
+
+      P.append(section('Camera', [
+        keep(toggle('Orbit', () => S.orbit.on, (v) => { S.orbit.on = v; startOrbit(); })),
+        keep(slider('Speed', { min: 0, max: 30, step: 0.5, get: () => S.orbit.speed, set: (v) => { S.orbit.speed = v; startOrbit(); }, fmt: (v) => v + '°/s' })),
+        keep(slider('Distance', { min: 0.3, max: 3, step: 0.05, get: () => S.orbit.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45), set: (v) => { S.orbit.dist = v; startOrbit(); }, fmt: (v) => v.toFixed(2) })),
+        keep(slider('Angle', { min: 5, max: 85, step: 1, get: () => S.orbit.pitch, set: (v) => { S.orbit.pitch = v; startOrbit(); }, fmt: (v) => v + '°' })),
+      ], false));
+
+      // Export: the current snapshot (this exact build, these colours) as a .glb for the Spline editor
+      const glb = el('button', 'btn primary', 'Save .glb'); glb.id = 'ui-glb';
+      glb.title = 'Download this build as a .glb, then drag it into the Spline editor: real objects, one material per class';
+      glb.onclick = () => {
         if (!built) return;
         status('Writing .glb…');
         setTimeout(() => { // let the status paint first: a 512 city takes a second
           try {
-            const { glb } = SplinePlace.placeGLB(built);
-            const file = (built.name.split(',')[0] || 'place').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.glb';
-            const url = URL.createObjectURL(new Blob([glb], { type: 'model/gltf-binary' }));
-            const a = document.createElement('a'); a.href = url; a.download = file; document.body.appendChild(a); a.click(); a.remove();
+            const name = (PLACE.name || 'Place').split(',')[0];
+            const { glb: bytes } = SP.placeToGLB(built.glb.cols, look, { ...built.glb, name });
+            const file = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.glb';
+            const url = URL.createObjectURL(new Blob([bytes], { type: 'model/gltf-binary' }));
+            const a = el('a'); a.href = url; a.download = file; document.body.append(a); a.click(); a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 60000);
-            status(`${file} · ${(glb.length / 1e6).toFixed(0)} MB: drag it into the Spline editor`); setTimeout(() => status(''), 5000);
-          } catch (e) { status('Could not write the .glb: ' + (e && e.message || e)); }
+            status(`${file} · ${(bytes.length / 1e6).toFixed(0)} MB: drag it into the Spline editor`); setTimeout(() => status(''), 5000);
+          } catch (e) { status('Could not write the .glb: ' + ((e && e.message) || e)); }
         }, 30);
       };
-      // search runs on Enter only: the geocoder is a shared service, not a search-as-you-type API
-      $('ui-search').addEventListener('keydown', async (e) => {
-        if (e.key !== 'Enter' || !e.target.value.trim()) return;
-        $('ui-results').textContent = 'Searching…';
-        try {
-          const hits = await SplinePlace.geocode(e.target.value.trim(), { limit: 5 });
-          $('ui-results').innerHTML = '';
-          if (!hits.length) $('ui-results').textContent = 'Nothing found';
-          for (const h of hits) {
-            const b = document.createElement('button');
-            b.textContent = h.name;
-            b.onclick = () => {
-              Object.assign(PLACE, { name: h.name.split(',')[0], lat: h.lat, lon: h.lon });
-              if (h.extentM) $('ui-size').value = mToSize(Math.min(40000, Math.max(1000, h.extentM * 1.1)));
-              $('ui-title').textContent = PLACE.name; $('ui-results').innerHTML = ''; show(); readPanel(); build();
-            };
-            $('ui-results').appendChild(b);
-          }
-        } catch (err) { $('ui-results').textContent = 'Search failed: ' + (err.message || err); }
-      });
-    };
-
-    const run = () => { initPanel(); build(); };
-    if (window.SplinePlace) run(); // bundle pasted inline above this script
-    else {
-      const s = document.createElement('script');
-      s.src = BUNDLE; s.onload = run; s.onerror = () => status('Could not load the place builder');
-      document.head.appendChild(s);
+      const link = el('button', 'btn', 'Copy link'); link.id = 'ui-share';
+      link.onclick = async () => {
+        const u = new URL(location.href);
+        u.searchParams.set('place', [PLACE.lat.toFixed(5), PLACE.lon.toFixed(5), (PLACE.sizeM / 1000).toFixed(1)].join(','));
+        u.searchParams.set('name', PLACE.name); u.searchParams.set('style', PLACE.style); u.searchParams.set('frame', PLACE.frame || 'crop');
+        try { await navigator.clipboard.writeText(u.toString()); status('Link copied'); setTimeout(() => status(''), 1500); } catch { status(u.toString()); }
+      };
+      const cfg = el('button', 'btn', 'Copy settings');
+      cfg.title = 'The PLACE and ORBIT lines for this scene, to paste into its HTML (or hand to your agent)';
+      cfg.onclick = async () => {
+        const n = PLACE.n || 512;
+        const placeLine = { name: PLACE.name, lat: +PLACE.lat.toFixed(5), lon: +PLACE.lon.toFixed(5), sizeM: Math.round(PLACE.sizeM), n, style: PLACE.style, frame: PLACE.frame || 'crop', exag: S.exag, aspect: S.aspect, vitrine: S.vitrine, base: Math.round((n * S.slab) / 100), trees: S.trees };
+        const orbitLine = { ...ORBIT, dist: S.orbit.dist, pitch: S.orbit.pitch, speed: S.orbit.on ? S.orbit.speed : 0 };
+        const text = `const PLACE = ${JSON.stringify(placeLine)};\nconst ORBIT = ${JSON.stringify(orbitLine)};`;
+        try { await navigator.clipboard.writeText(text); status('Settings copied'); setTimeout(() => status(''), 1500); } catch { status(text); }
+      };
+      const b1 = el('div', 'btns'), b2 = el('div', 'btns'); b1.append(glb); b2.append(link, cfg);
+      P.append(section('Export', [b1, b2]));
+      const st = el('div', 'stats', '<span><i class="dot busy"></i>Loading…</span>'); st.id = 'pt-stats'; P.append(st);
+      $('pt-title').textContent = (PLACE.name || 'Place').split(',')[0];
     }
+
+    const run = () => { SP = window.SplinePlace; setLook(PLACE.style || 'strata'); initPanel(); job = job.then(build); };
+    // the builder: already on the page (pasted inline above this script), or from the CDN (BUNDLE)
+    async function loadBuilder() {
+      if (window.SplinePlace) return;
+      const s = document.createElement('script');
+      await new Promise((ok, fail) => { s.src = BUNDLE; s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
+    }
+    loadBuilder().then(run, () => status('Could not load the place builder'));
   </script>
 </body>
 </html>

@@ -80,7 +80,7 @@ is the area the right size? Adjust and rerun. (Node 18+, no install.)
   ground dissolves into the background at the edges, best for flying over a
   place.
 - **Style.** `strata` (vivid and natural: sage ground, saturated greens,
-  terracotta, slate and copper roofs over white and pastel walls, turquoise
+  terracotta, slate, tile and brick roofs over white and pastel walls, turquoise
   to deep-blue water with waves, reflections and shore foam, rust strata), `night`
   (dark blocks, glowing roads, lit windows), `snow` (fresh snow, warm
   windows) or `model` (an architect's white model). Each style sets a background colour;
@@ -140,15 +140,24 @@ panel (for a clean published embed); `worldWidth` is the place's width in
 world units, whatever `n` is, so the camera and lights you set keep working
 when the viewer changes the detail.
 
-**The panel.** With `ui: true` the scene shows a small panel: search a place
-(Enter; it geocodes once per search, never per keystroke), then Size, Detail
-(`n`), Height (`exag`), Style, Frame, and for a crop the Slab, Vitrine and
-Shape. Build rebuilds in place; Copy link copies the page URL with
-`?place=lat,lon,km&style=&frame=`, which the scene reads on load, so one
-published scene can show any place.
+**The panel.** With `ui: true` the scene shows a panel styled like Spline's
+own sidebar, and every control applies live, with no Build button:
+
+- Location: search (Enter; it geocodes once per search, never per
+  keystroke), Size, Detail (`n`). These fetch new map data (1–2 s).
+- Shape: Frame, Shape (aspect), Height (`exag`), Slab, Vitrine, Trees. These
+  rebuild from the data already loaded (under a second for a 512 city).
+- Style, Water, Light, Camera: preset, edge strength, regional tints, every
+  class's colour stops (click a swatch), waves, reflection, foam, glints, sky,
+  sun and shade colours, lit windows, glowing roads, orbit speed, distance
+  and angle. These are shader uniforms and the palette texture: instant.
+- Export: Save .glb (exactly what's on screen, with the edited colours),
+  Copy link (`?place=lat,lon,km&style=&frame=`, which the scene reads on
+  load), Copy settings (the PLACE and ORBIT lines for this look: ask the user
+  to paste them to you, then put them in the scene's HTML).
 
 **Inline the builder.** Paste the contents of
-`scripts/place-scene.bundle.js` (36 KB) into a `<script>` just above the
+`scripts/place-scene.bundle.js` (38 KB) into a `<script>` just above the
 template's script; the loader uses it when it's there. The template's
 `BUNDLE` URL (jsDelivr) only works once this repository is public.
 
@@ -184,6 +193,29 @@ options as the bake below, plus `--n` up to 768. Size grows with detail: a
 60 MB. Suggest 384 unless they need the fine detail. Tell the user: each
 object is one material, so to restyle a class they change that material's
 colour; the vertex-colour layer under it carries the shading.
+
+## Cube instances (a toy-brick version)
+
+The place as real Spline cubes, one per visible voxel, over the MCP:
+
+```bash
+node scripts/cubes.mjs --lat 47.507 --lon 19.045 --name Budapest --size 3000 --n 128 --out /tmp/cubes-budapest
+```
+
+It writes two scripts; run them in order with `3d_run_code`. Each material
+becomes one Cube (bevelled, a little smaller than its voxel) made a cloner
+with `spreadType: 'vertex'` and `instanced: true` over a "points" mesh: one
+zero-area triangle per voxel, so it samples as points and draws nothing (it
+must stay visible; a hidden target gives the cloner no points). Budapest at
+128 is ~21k cubes in 25 instanced draws, about 27 KB of script.
+
+- Change one cube's size, bevel or material in the editor and every voxel of
+  that class follows. Delete a class's cloner to drop it.
+- Keep `sizeM / n` at 25 m or less, or there are no buildings (3 km at 128,
+  4 km at 160). Mountains need ~1.6× the cubes of a city.
+- `--gap` (default 0.94) sizes the cube against its voxel; 1 makes them touch.
+  `--round` is the corner radius as a fraction of a voxel.
+- Cubes are real objects, so hosted screenshots show them.
 
 ## Bake over the MCP
 

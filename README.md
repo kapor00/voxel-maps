@@ -22,14 +22,18 @@ experience needed.
 
 Full-quality videos (1280 px, 10 s): [Budapest, crop](assets/budapest-orbit.mp4) · [Rio de Janeiro, immersive](assets/rio-orbit.mp4)
 
-## Search any place from inside the scene
+## A live panel, like a Spline plugin
 
-![The scene's panel: search a place, then size, detail, height, style, frame, slab, vitrine and shape](assets/panel.jpg)
+![The scene's panel, styled like Spline's sidebar: location, shape, style swatches, water, light, camera and export](assets/panel.jpg)
 
-The scene carries a small panel: search a place, change its size, detail
-and height, the style and the frame (and for a crop, the depth of the slab,
-the vitrine and the shape), then Build. Copy link shares the exact place;
-Save .glb downloads it for the editor. Hide the panel for a clean embed.
+The scene carries a panel in Spline's own sidebar style, and everything on
+it applies live. Search a place and set its size and detail; drag the
+height, slab, vitrine and shape and it rebuilds in under a second; recolour
+any class from its swatches, or tune edges, tints, waves, reflections, foam,
+sun and shade, and it changes instantly. **Save .glb** downloads exactly
+what's on screen for the editor, **Copy link** shares the place, and **Copy
+settings** gives your agent the lines to make it the scene's default. Hide
+the panel for a clean embed.
 
 ## Real, editable objects in the Spline editor
 
@@ -44,6 +48,16 @@ depth come along as vertex colours.
 
 No file to hand over? An agent can also **bake** the place straight into the
 file through the Spline MCP server (`scripts/bake.mjs`), at a coarser grid.
+
+## Or build it from cube instances
+
+![Budapest as 21,480 bevelled Spline cube instances](assets/budapest-cubes.jpg)
+
+`scripts/cubes.mjs` builds the place out of real Spline cubes, one per
+visible voxel: every material is a single bevelled Cube, cloned onto a
+hidden points mesh and drawn instanced. Make the cubes rounder, smaller or
+glossier in the editor and the whole city follows. Budapest is ~21k cubes
+in 25 draws.
 
 ## Demos
 
@@ -67,7 +81,7 @@ had loaded, and rendered with the Spline runtime. The exact settings are in
 | ![Strata](assets/budapest-strata-crop.jpg) | ![Night](assets/manhattan-night-crop.jpg) | ![Snow](assets/matterhorn-snow-crop.jpg) | ![White model](assets/venice-model-crop.jpg) |
 
 Strata is the vivid one: sage ground and saturated greens, terracotta,
-slate and copper roofs over white and pastel walls, rust rock strata, and
+slate, tile and brick roofs over white and pastel walls, rust rock strata, and
 water that runs from turquoise at the bank to deep blue, with moving waves,
 sky reflections, sun glints and foam along the shore. A style is a table of colours:
 one row of colour stops per cell type (land,
@@ -130,10 +144,11 @@ scripts/
   geo/        place → grids: geocoding, elevation, vector tiles, rasterising (no dependencies)
   builder/    grids → Spline meshes, the crop frame, and styles.js (palettes and shader)
   builder/glb.js  a place → .glb: one object per material, vertex-coloured shading
-  bake/       the decoder and mesher a baked place's scripts carry into Spline
+  bake/       the decoder and meshers (surfaces, cubes) that bake scripts carry into Spline
   cli.mjs     check a place and preview it from the terminal (Node 18+)
   export-glb.mjs  export a place as a .glb for the Spline editor
   bake.mjs    bake a place into editable Spline objects over the MCP
+  cubes.mjs   build a place from Spline cube instances over the MCP
   scene.html  the scene document the agent sets (builder, orbit and the panel)
 examples/     the settings behind every image above
 ```

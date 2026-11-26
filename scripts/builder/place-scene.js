@@ -186,43 +186,61 @@ export async function buildPlaceScene(spline, o = {}) {
   const say = o.onStatus || (() => {});
   await spline.ready;
   const t0 = performance.now();
-  say('Fetching map data…');
-  const pack = o.pack ? await decodePlace(o.pack) : await buildPlace({ query: o.query, name: o.name, lat: o.lat, lon: o.lon, sizeM: o.sizeM, n: o.n ?? 512 });
+  if (!o.raw) say('Fetching map data…');
+  const pack = o.raw ?? (o.pack ? await decodePlace(o.pack) : await buildPlace({ query: o.query, name: o.name, lat: o.lat, lon: o.lon, sizeM: o.sizeM, n: o.n ?? 512 }));
   const tData = performance.now();
   say('Building voxels…');
   const frame = o.frame === 'immersive' ? 'immersive' : 'crop';
   const style = typeof o.style === 'object' ? o.style : STYLES[o.style || 'strata'] || STYLES.strata;
-  const look = o.background ? { ...style, background: o.background } : style;
+  const look = { ...(o.look || style), ...(o.background ? { background: o.background } : {}) };
   // a crop stands on a slab ~6% of its width deep, so the cut reads as layers of rock
   const n = pack.meta.n;
   const base = frame === 'crop' ? Math.max(4, Math.round(o.base ?? n * 0.06)) : 2;
   const cols = placeColumns(pack, { exag: o.exag, trees: o.trees, base });
   const voxel = o.voxel ?? 1.2;
   const { meshes, voxels, height, width, depth } = meshColumns(cols, { voxel, frame, aspect: frame === 'crop' ? o.aspect ?? 1 : 1 });
-  let material = style.fallback;
-  try {
-    const fade = frame === 'immersive' ? { radius: width / 2, start: 0.55 } : undefined;
-    const band = Math.max(2, Math.round(base / 5)); // strata in ~5 bands across the slab
-    material = await spline.createCustomMaterial((three) => voxelMaterial(three, look, { voxel, band, fade }));
-  } catch (e) { console.warn('[place] custom material unavailable, using a flat colour:', e?.message || e); }
+  // one material for the whole session: a rebuild only retunes its uniforms (no shader recompile)
+  const fade = frame === 'immersive' ? { radius: width / 2, start: 0.55 } : null;
+  const band = Math.max(2, Math.round(base / 5)); // strata in ~5 bands across the slab
+  let material = o.material, controls = o.material?.placeControls;
+  if (controls) controls.set({ voxel, band, fade });
+  else {
+    material = style.fallback;
+    try {
+      let made;
+      material = await spline.createCustomMaterial((three) => (made = voxelMaterial(three, look, { voxel, band, fade: fade || undefined })));
+      controls = made?.placeControls || material?.placeControls;
+    } catch (e) { console.warn('[place] custom material unavailable, using a flat colour:', e?.message || e); }
+  }
   const group = await spline.createObject('Group', { name: `Place: ${pack.meta.name}` });
   const ids = [], P = group?.id ? { parent: group.id } : {};
   for (const g of meshes) {
     const r = await spline.createObject('CustomMesh', { ...g, material, name: 'Place Voxels', ...P });
     if (r?.id) ids.push(r.id);
   }
-  if (frame === 'crop') ids.push(...(await addCropFrame(spline, { width, depth, height, style, parent: group?.id, vitrine: o.vitrine ?? 1 })));
+  const frameIds = frame === 'crop' ? await addCropFrame(spline, { width, depth, height, style: look, parent: group?.id, vitrine: o.vitrine ?? 1 }) : [];
+  ids.push(...frameIds);
   say('');
   return {
     name: pack.meta.name, attribution: pack.meta.attribution, labels: pack.labels, background: style.background,
     // what toGLB() needs to save this exact build as a .glb
-    glb: { cols, style, voxel, frame, aspect: frame === 'crop' ? o.aspect ?? 1 : 1, band: Math.max(2, Math.round(base / 5)), vitrine: o.vitrine ?? 1 },
+    glb: { cols, style: look, voxel, frame, aspect: frame === 'crop' ? o.aspect ?? 1 : 1, band: Math.max(2, Math.round(base / 5)), vitrine: o.vitrine ?? 1 },
+    pack, material, controls, frameIds, frameArgs: { width, depth, height, parent: group?.id, vitrine: o.vitrine ?? 1 },
     n: cols.n, cellM: pack.meta.cell, voxels, trees: cols.trees, meshes: meshes.length, ids, groupId: group?.id, extent: width, depth, height, frame, lat: pack.meta.lat, lon: pack.meta.lon,
     ms: { data: Math.round(tData - t0), build: Math.round(performance.now() - tData) },
   };
 }
 
 /** Remove a place built by buildPlaceScene (its meshes, frame and group). */
+/** Recolour the crop's pedestal and vitrine (they're plain Spline objects): rebuild just them. */
+export async function restyleFrame(spline, result, style) {
+  if (!result?.frameIds?.length) return;
+  for (const id of result.frameIds) { try { await spline.removeObject(id); } catch {} }
+  result.ids = result.ids.filter((id) => !result.frameIds.includes(id));
+  result.frameIds = await addCropFrame(spline, { ...result.frameArgs, style });
+  result.ids.push(...result.frameIds);
+}
+
 export async function removePlace(spline, result) {
   if (!result) return;
   for (const id of result.ids || []) { try { await spline.removeObject(id); } catch {} }

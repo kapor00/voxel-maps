@@ -60,8 +60,8 @@ export const STYLES = {
       road: ['#55555f', '#626270', '#727280'],
       // one slot per building: white, cream, peach, cool grey, sage · glass towers
       building: ['#f5f2eb', '#ecd8bb', '#f1c6a2', '#d6dce4', '#cddcc2', '#a9cde4'],
-      // terracotta, slate, brick, copper green, grey · glass
-      roof: ['#c55a3b', '#4f5768', '#a8462e', '#5fa592', '#8e939d', '#d6ebf6'],
+      // terracotta, slate, tile, brick, grey · glass
+      roof: ['#c55a3b', '#4f5768', '#d0744a', '#a8462e', '#8e939d', '#d6ebf6'],
       tree: ['#3f8a30', '#4f9a38', '#5fae3e', '#78bf48'],
     },
     flat: { ground: '#b4c47c', side: '#a27648', water: '#2490cc', road: '#626270', building: '#ece2d2', roof: '#b4553a', tree: '#4f9a38', cut: ['#b44b22', '#c9663a', '#8e3318', '#d8a06a'] },
@@ -138,12 +138,29 @@ export function paletteImage(style, width = 64) {
   return { data, width, height: ROW_COUNT };
 }
 
+/** Everything the live controls can change without rebuilding, read from a style. */
+export function styleUniformValues(style) {
+  const t = style.tints || [];
+  return {
+    edge: style.edge ?? 0.8,
+    key: style.key || '#ffffff', fill: style.fill || '#7078a0',
+    sky: style.sky || '#cfe3f5', background: style.background || '#140e20',
+    water: style.water === false ? 0 : 1,
+    waves: style.waves ?? 1, reflect: style.reflect ?? 1, foam: style.foam ?? 1, glints: style.glints ?? 1,
+    glow: (style.glow || []).includes('road') ? 1 : 0,
+    windows: style.windows?.density ?? 0, windowColor: style.windows?.color || '#ffd08a',
+    tints: [0, 1, 2, 3].map((i) => ({ color: t[i]?.color || '#000000', amount: t[i]?.amount ?? 0 })),
+    tint: 1,
+  };
+}
+
 /**
  * The shared voxel material, built only from the three namespace Spline passes in.
+ * Every look parameter is a uniform or the palette texture, so `material.placeControls`
+ * can restyle it live: set(values) and setStyle(style), with no rebuild and no recompile.
  * @param three  what spline.createCustomMaterial hands its factory
  * @param style  a STYLES entry, or your own object of the same shape
- * @param o.voxel world units per voxel
- * @param o.band  strata band thickness in voxels (default 3)
+ * @param o.voxel world units per voxel · o.band strata band thickness in voxels (default 3)
  * @param o.fade  { radius, start } — immersive mode: dissolve into the background from start×radius to radius
  */
 export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
@@ -151,9 +168,19 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
   const img = paletteImage(style);
   const tex = new three.DataTexture(img.data, img.width, img.height, three.RGBAFormat);
   tex.magFilter = three.LinearFilter; tex.minFilter = three.LinearFilter; tex.needsUpdate = true;
+  const col = (h) => new three.Color(h);
+  const v0 = styleUniformValues(style);
+  const U = {
+    voxel: T.uniform(voxel), band: T.uniform(band), edge: T.uniform(v0.edge),
+    key: T.uniform(col(v0.key)), fill: T.uniform(col(v0.fill)), sky: T.uniform(col(v0.sky)), background: T.uniform(col(v0.background)),
+    water: T.uniform(v0.water), waves: T.uniform(v0.waves), reflect: T.uniform(v0.reflect), foam: T.uniform(v0.foam), glints: T.uniform(v0.glints),
+    glow: T.uniform(v0.glow), windows: T.uniform(v0.windows), windowColor: T.uniform(col(v0.windowColor)), tint: T.uniform(v0.tint),
+    fade: T.uniform(fade ? 1 : 0), fadeRadius: T.uniform(fade?.radius ?? 1), fadeStart: T.uniform(fade?.start ?? 0.55),
+    tints: v0.tints.map((t) => ({ color: T.uniform(col(t.color)), amount: T.uniform(t.amount) })),
+  };
 
   const m = new three.MeshBasicNodeMaterial();
-  const N = T.normalize(T.normalWorld), v = T.uv().y, U = T.uv().x;
+  const N = T.normalize(T.normalWorld), v = T.uv().y, Uv = T.uv().x;
   const rowMask = (name) => T.step(ROW[name] / ROW_COUNT, v).mul(T.float(1).sub(T.step((ROW[name] + 1) / ROW_COUNT, v)));
   const hash = (x) => T.fract(T.sin(x.mul(12.9898).add(4.1414)).mul(43758.5453));
   const hash2 = (p) => T.fract(T.sin(T.dot(p, T.vec2(127.1, 311.7))).mul(43758.5453));
@@ -163,87 +190,103 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
     return T.mix(T.mix(a, b, u.x), T.mix(c, d, u.x), u.y);
   };
   const side = T.smoothstep(0.3, 0.7, T.float(1).sub(T.abs(N.y))); // 1 on walls, 0 on tops
-  const level = T.floor(T.positionWorld.y.div(voxel).add(0.001));
+  const level = T.floor(T.positionWorld.y.div(U.voxel).add(0.001));
   const isCut = rowMask('cut'), isBuilding = rowMask('building');
   let isGround = T.float(0);
   for (const g of GROUND) isGround = isGround.add(rowMask(g));
 
   // strata: thick bands (a few voxels), each its own colour from the cut row
-  const bandId = T.floor(level.div(band));
-  const u = T.mix(U, hash(bandId), isCut);
+  const bandId = T.floor(level.div(U.band));
+  const u = T.mix(Uv, hash(bandId), isCut);
   // building tops read the roof row; ground walls read the side row (by height)
   let vv = v.add(isBuilding.mul(T.float(1).sub(side)).mul(1 / ROW_COUNT));
   vv = T.mix(vv, rowV('side'), isGround.mul(side));
   let c = T.texture(tex, T.vec2(u, vv)).rgb;
 
   // regional tints on open ground tops, like the original's pale/rust/olive/rose patches
-  if (style.tints) {
-    const p = T.positionWorld.xz.div(voxel * 48);
+  {
+    const p = T.positionWorld.xz.div(U.voxel.mul(48));
     const n1 = vnoise(p.add(T.vec2(31.4, 17.2))), n2 = vnoise(p.mul(0.63).add(T.vec2(5.1, 41.7)));
-    const ground = isGround.mul(T.float(1).sub(side)).mul(T.float(1).sub(rowMask('wood')));
-    style.tints.forEach((t, i) => {
+    const ground = isGround.mul(T.float(1).sub(side)).mul(T.float(1).sub(rowMask('wood'))).mul(U.tint);
+    U.tints.forEach((t, i) => {
       const n = i % 2 ? n2 : n1, w = i < 2 ? T.smoothstep(0.58, 0.8, i ? T.float(1).sub(n) : n) : T.smoothstep(0.6, 0.82, i === 3 ? T.float(1).sub(n) : n);
-      c = T.mix(c, vec(T, t.color), w.mul(t.amount).mul(ground));
+      c = T.mix(c, t.color, w.mul(t.amount).mul(ground));
     });
   }
 
-  let unlit = T.float(0);
-  for (const name of style.glow || []) unlit = unlit.add(rowMask(name));
-  if (style.windows) {
-    const cell = T.floor(T.positionWorld.div(voxel / 3));
-    const lit = T.step(1 - style.windows.density, hash(T.dot(cell, T.vec3(1.0, 57.0, 113.0)))).mul(side).mul(isBuilding);
-    c = T.mix(c, vec(T, style.windows.color), lit);
+  let unlit = rowMask('road').mul(U.glow);
+  {
+    const cell = T.floor(T.positionWorld.div(U.voxel.div(3)));
+    const lit = T.step(T.float(1).sub(U.windows), hash(T.dot(cell, T.vec3(1.0, 57.0, 113.0)))).mul(side).mul(isBuilding).mul(T.step(0.001, U.windows));
+    c = T.mix(c, U.windowColor, lit);
     unlit = unlit.add(lit);
   }
 
   // light: warm key from the upper left, cool fill in the shade, a little extra on tops
   const L = T.normalize(T.vec3(-0.55, 0.78, 0.3));
   const wrap = T.clamp(T.dot(N, L).mul(0.6).add(0.45), 0, 1);
-  const light = T.mix(vec(T, style.fill || '#7078a0'), vec(T, style.key || '#ffffff'), wrap).mul(T.mix(0.92, 1.08, T.smoothstep(0.5, 0.95, N.y)));
+  const light = T.mix(U.fill, U.key, wrap).mul(T.mix(0.92, 1.08, T.smoothstep(0.5, 0.95, N.y)));
 
   // water: waves, sky reflection, sun glints and shore foam (after the original's water shader)
-  let waterTop = T.float(0), water = c;
-  if (style.water !== false) {
-    waterTop = rowMask('water').mul(T.float(1).sub(side));
-    const t = T.time ?? T.float(0);
-    const wp = T.positionWorld.xz.div(voxel * 5);
+  const waterTop = rowMask('water').mul(T.float(1).sub(side)).mul(U.water);
+  let water;
+  {
+    const t = (T.time ?? T.float(0)).mul(U.waves.max(0.0001).sqrt());
+    const wp = T.positionWorld.xz.div(U.voxel.mul(5));
     const wave = (p) => vnoise(p.add(T.vec2(t.mul(0.32), t.mul(0.21)))).add(vnoise(p.mul(2.7).sub(T.vec2(t.mul(0.47), t.mul(-0.29)))).mul(0.5));
     const de = 0.12, h0 = wave(wp), hx = wave(wp.add(T.vec2(de, 0))), hz = wave(wp.add(T.vec2(0, de)));
-    const Nw = T.normalize(T.vec3(h0.sub(hx).div(de).mul(0.32), 1, h0.sub(hz).div(de).mul(0.32)));
+    const amp = U.waves.mul(0.32);
+    const Nw = T.normalize(T.vec3(h0.sub(hx).div(de).mul(amp), 1, h0.sub(hz).div(de).mul(amp)));
     const V = T.normalize(T.cameraPosition.sub(T.positionWorld));
     const fres = T.pow(T.float(1).sub(T.max(T.dot(Nw, V), 0)), 4);
     const H = T.normalize(L.add(V));
     const spec = T.pow(T.max(T.dot(Nw, H), 0), 160);
-    const glint = T.step(0.993, vnoise(T.positionWorld.xz.div(voxel * 0.7).add(T.vec2(t.mul(1.3), t.mul(-0.9)))));
-    const shore = T.float(1).sub(T.smoothstep(0.0, 0.1, U));
-    const foam = shore.mul(T.smoothstep(0.45, 0.8, vnoise(T.positionWorld.xz.div(voxel * 1.2).add(T.vec2(t.mul(0.15), 0)))));
-    water = T.mix(c, vec(T, style.sky || '#cfe3f5'), T.min(fres.mul(0.55), 0.7)).mul(T.mix(0.9, 1.05, h0.mul(0.67)));
-    water = water.add(vec(T, style.key || '#ffffff').mul(spec.mul(1.6).add(glint.mul(0.18))));
+    const glint = T.step(0.993, vnoise(T.positionWorld.xz.div(U.voxel.mul(0.7)).add(T.vec2(t.mul(1.3), t.mul(-0.9))))).mul(U.glints);
+    const shore = T.float(1).sub(T.smoothstep(0.0, 0.1, Uv));
+    const foam = shore.mul(T.smoothstep(0.45, 0.8, vnoise(T.positionWorld.xz.div(U.voxel.mul(1.2)).add(T.vec2(t.mul(0.15), 0))))).mul(U.foam);
+    water = T.mix(c, U.sky, T.min(fres.mul(0.55).mul(U.reflect), 0.7)).mul(T.mix(1, T.mix(0.9, 1.05, h0.mul(0.67)), T.min(U.waves, 1)));
+    water = water.add(U.key.mul(spec.mul(1.6).mul(U.reflect).add(glint.mul(0.18))));
     water = T.mix(water, T.vec3(0.92, 0.97, 1.0), foam.mul(0.55));
   }
 
   // voxel edges, anti-aliased: thin dark seams that fade out once a voxel is only a few pixels on screen
-  const q = T.positionWorld.div(voxel), w = T.fwidth(q);
+  const q = T.positionWorld.div(U.voxel), w = T.fwidth(q);
   const f = T.abs(T.fract(q).sub(0.5));
   const seam = (fa, wa, na) => T.smoothstep(T.float(0.5).sub(wa.mul(1.2)).sub(0.03), 0.5, fa).mul(T.abs(na).oneMinus());
   const e = T.max(T.max(seam(f.x, w.x, N.x), seam(f.y, w.y, N.y)), seam(f.z, w.z, N.z));
   const edgeFade = T.float(1).sub(T.smoothstep(0.18, 0.45, T.max(T.max(w.x, w.y), w.z)));
-  const edge = T.mix(1, style.edge ?? 0.8, e.mul(edgeFade).mul(T.float(1).sub(waterTop))); // no grid on water
+  const edge = T.mix(1, U.edge, e.mul(edgeFade).mul(T.float(1).sub(waterTop))); // no grid on water
   // strata: a fine dark line between bands, also faded with distance
-  const bandLine = T.smoothstep(T.float(1).sub(w.y.mul(1.5)).sub(0.02), 1, T.fract(level.add(T.fract(q.y)).div(band))).mul(isCut).mul(edgeFade);
+  const bandLine = T.smoothstep(T.float(1).sub(w.y.mul(1.5)).sub(0.02), 1, T.fract(level.add(T.fract(q.y)).div(U.band))).mul(isCut).mul(edgeFade);
 
   const lit = c.mul(light).mul(edge).mul(T.float(1).sub(bandLine.mul(0.25)));
   let out = T.mix(lit, c, T.clamp(unlit, 0, 1));
   out = T.mix(out, water, waterTop); // water is lit by its own reflection, not the voxel light
 
-  if (fade) {
-    // immersive: dissolve toward the background with distance from the centre (dithered, so no sorting issues)
-    const k = T.smoothstep(fade.start, 1, T.length(T.positionWorld.xz).div(fade.radius));
-    out = T.mix(out, vec(T, style.background), k);
-    m.opacityNode = T.step(T.interleavedGradientNoise(T.screenCoordinate.xy), T.float(1).sub(k.mul(k)));
-    m.alphaTest = 0.5;
-  }
+  // immersive: dissolve toward the background with distance from the centre (dithered, so no sorting issues)
+  const k = T.smoothstep(U.fadeStart, 1, T.length(T.positionWorld.xz).div(U.fadeRadius)).mul(U.fade);
+  out = T.mix(out, U.background, k);
+  m.opacityNode = T.step(T.interleavedGradientNoise(T.screenCoordinate.xy), T.float(1).sub(k.mul(k)));
+  m.alphaTest = 0.5;
   m.colorNode = out;
   m.toneMapped = false;
+
+  const setColor = (uni, hex) => uni.value.set(hex);
+  m.placeControls = {
+    uniforms: U,
+    /** Live tweaks: any of styleUniformValues' keys, plus voxel, band, fade { radius, start } | null. */
+    set(o) {
+      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint']) if (o[k2] != null) U[k2].value = +o[k2];
+      for (const k2 of ['key', 'fill', 'sky', 'background', 'windowColor']) if (o[k2]) setColor(U[k2], o[k2]);
+      if (o.tints) o.tints.forEach((t, i) => { if (U.tints[i]) { setColor(U.tints[i].color, t.color); U.tints[i].amount.value = t.amount; } });
+      if (o.fade !== undefined) { U.fade.value = o.fade ? 1 : 0; if (o.fade) { U.fadeRadius.value = o.fade.radius; U.fadeStart.value = o.fade.start ?? 0.55; } }
+    },
+    /** Swap the whole look: palette rows and every uniform the style sets. */
+    setStyle(st) {
+      const next = paletteImage(st);
+      tex.image.data.set(next.data); tex.needsUpdate = true;
+      this.set(styleUniformValues(st));
+    },
+  };
   return m;
 }

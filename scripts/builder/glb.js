@@ -16,7 +16,7 @@ const hash2 = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
 
 const DEFAULT_NAMES = {
   building: ['White', 'Cream', 'Peach', 'Grey', 'Sage', 'Glass'],
-  roof: ['Terracotta', 'Slate', 'Brick', 'Copper', 'Grey', 'Glass'],
+  roof: ['Terracotta', 'Slate', 'Tile', 'Brick', 'Grey', 'Glass'],
 };
 
 /** The material table for a style: name → { color: '#rrggbb', roughness, alpha }. Also tells which slot a cell uses. */
