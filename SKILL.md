@@ -156,6 +156,13 @@ own sidebar, and every control applies live, with no Build button:
   load), Copy settings (the PLACE and ORBIT lines for this look: ask the user
   to paste them to you, then put them in the scene's HTML).
 
+  In the Spline editor's Play preview the scene runs in a sandboxed frame
+  that can't download files (and often can't use the clipboard). There Save
+  .glb shows a command instead: `node scripts/export-glb.mjs … --look '{…}'`,
+  which rebuilds the same snapshot with the user's edited colours. If the user
+  pastes you that command, run it from this skill's folder and hand them the
+  .glb. The Public URL has no such sandbox.
+
 **Inline the builder.** Paste the contents of
 `scripts/place-scene.bundle.js` (38 KB) into a `<script>` just above the
 template's script; the loader uses it when it's there. The template's

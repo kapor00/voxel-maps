@@ -73,6 +73,17 @@
     #pt-open { position: fixed; right: 12px; top: 12px; width: 32px; height: 32px; border-radius: 9px; background: #1e1e1e; color: rgba(255, 255, 255, .8); border: 0;
       display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
     #pt-open[hidden] { display: none; }
+    #pt-sheet { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .45); font: 11px/1.45 'Spline Sans', Inter, system-ui, sans-serif; z-index: 10; }
+    #pt-sheet[hidden] { display: none; }
+    #pt-sheet .card { width: min(440px, calc(100vw - 32px)); background: #1e1e1e; color: rgba(255, 255, 255, .92); border-radius: 12px; padding: 14px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(255, 255, 255, .05); display: grid; gap: 10px; }
+    #pt-sheet b { font-size: 12px; font-weight: 600; }
+    #pt-sheet p { margin: 0; color: rgba(255, 255, 255, .7); }
+    #pt-sheet textarea { all: unset; box-sizing: border-box; width: 100%; height: 110px; background: rgba(255, 255, 255, .05); border-radius: 7px; padding: 8px;
+      font: 10.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(255, 255, 255, .9); white-space: pre-wrap; word-break: break-all; overflow: auto; user-select: text; }
+    #pt-sheet .btns { display: flex; gap: 6px; justify-content: flex-end; }
+    #pt-sheet button { all: unset; height: 28px; padding: 0 14px; border-radius: 7px; background: rgba(255, 255, 255, .08); cursor: pointer; font-weight: 500; }
+    #pt-sheet button.primary { background: #2b99ff; color: #fff; }
   </style>
 </head>
 <body>
@@ -82,6 +93,8 @@
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h10M2 10h10"/><circle cx="5" cy="4" r="1.6" fill="#1e1e1e"/><circle cx="9" cy="10" r="1.6" fill="#1e1e1e"/></svg>
   </button>
   <div id="pt" hidden></div>
+  <div id="pt-sheet" hidden><div class="card"><b id="pt-sheet-title"></b><p id="pt-sheet-text"></p><textarea id="pt-sheet-box" readonly></textarea>
+    <div class="btns"><button id="pt-sheet-copy">Copy</button><button class="primary" id="pt-sheet-close">Done</button></div></div></div>
 
   <script>
     // ── edit these ──
@@ -146,6 +159,43 @@
       stopOrbit = await SP.orbitCamera(spline, { ...ORBIT, dist, pitch: S.orbit.pitch, target, extent: built.extent, speed: S.orbit.on ? S.orbit.speed : 0 });
     }
     const applyLook = () => built?.controls?.set(S.fx);
+
+    // Spline's editor runs Play in a sandboxed frame (opaque origin, no downloads, usually no clipboard).
+    // There the panel hands over text to copy by hand instead of failing silently.
+    const SANDBOXED = (() => { try { return window.origin === 'null'; } catch { return true; } })();
+    function sheet(title, text, value) {
+      $('pt-sheet-title').textContent = title; $('pt-sheet-text').textContent = text;
+      const box = $('pt-sheet-box'); box.value = value; $('pt-sheet').hidden = false;
+      setTimeout(() => { box.focus(); box.select(); }, 30);
+      $('pt-sheet-close').onclick = () => ($('pt-sheet').hidden = true);
+      $('pt-sheet-copy').onclick = async () => {
+        box.focus(); box.select();
+        let ok = false;
+        try { await navigator.clipboard.writeText(value); ok = true; } catch { try { ok = document.execCommand('copy'); } catch {} }
+        $('pt-sheet-copy').textContent = ok ? 'Copied' : 'Press ⌘C';
+        setTimeout(() => ($('pt-sheet-copy').textContent = 'Copy'), 1500);
+      };
+    }
+    async function copyText(value, label) {
+      try { await navigator.clipboard.writeText(value); status(label + ' copied'); setTimeout(() => status(''), 1500); }
+      catch { sheet(label, 'The clipboard is blocked here, so select it and copy by hand.', value); }
+    }
+    // the colour rows the user changed from the preset, as --look JSON
+    function lookDiff() {
+      const base = SP.STYLES[PLACE.style || 'strata'], rows = {};
+      for (const k of Object.keys(look.rows)) if (JSON.stringify(look.rows[k]) !== JSON.stringify(base.rows[k])) rows[k] = look.rows[k];
+      return Object.keys(rows).length ? { rows } : null;
+    }
+    function glbCommand() {
+      const n = PLACE.n || 512, q = (v) => `'${String(v).replace(/'/g, "'\\''")}'`;
+      const parts = ['node scripts/export-glb.mjs', `--lat ${PLACE.lat.toFixed(5)}`, `--lon ${PLACE.lon.toFixed(5)}`, `--name ${q((PLACE.name || 'Place').split(',')[0])}`,
+        `--size ${Math.round(PLACE.sizeM)}`, `--n ${n}`, `--style ${PLACE.style || 'strata'}`, `--frame ${PLACE.frame || 'crop'}`,
+        `--aspect ${S.aspect}`, `--vitrine ${S.vitrine}`, `--slab ${S.slab}`];
+      if (S.exag != null) parts.push(`--exag ${S.exag}`);
+      const d = lookDiff(); if (d) parts.push(`--look ${q(JSON.stringify(d))}`);
+      if (!S.trees) parts.push('--no-trees');
+      return parts.join(' ');
+    }
 
     // ── panel widgets ──
     const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -321,6 +371,12 @@
       glb.title = 'Download this build as a .glb, then drag it into the Spline editor: real objects, one material per class';
       glb.onclick = () => {
         if (!built) return;
+        if (SANDBOXED) {
+          sheet('Downloads are blocked in the Play preview',
+            "Spline's editor runs Play in a sandbox that can't save files. Open this scene's Public URL and press Save .glb there, or give your agent this command: it rebuilds exactly this snapshot, colours included.",
+            glbCommand());
+          return;
+        }
         status('Writing .glb…');
         setTimeout(() => { // let the status paint first: a 512 city takes a second
           try {
@@ -339,7 +395,7 @@
         const u = new URL(location.href);
         u.searchParams.set('place', [PLACE.lat.toFixed(5), PLACE.lon.toFixed(5), (PLACE.sizeM / 1000).toFixed(1)].join(','));
         u.searchParams.set('name', PLACE.name); u.searchParams.set('style', PLACE.style); u.searchParams.set('frame', PLACE.frame || 'crop');
-        try { await navigator.clipboard.writeText(u.toString()); status('Link copied'); setTimeout(() => status(''), 1500); } catch { status(u.toString()); }
+        await copyText(u.toString(), 'Link');
       };
       const cfg = el('button', 'btn', 'Copy settings');
       cfg.title = 'The PLACE and ORBIT lines for this scene, to paste into its HTML (or hand to your agent)';
@@ -348,7 +404,7 @@
         const placeLine = { name: PLACE.name, lat: +PLACE.lat.toFixed(5), lon: +PLACE.lon.toFixed(5), sizeM: Math.round(PLACE.sizeM), n, style: PLACE.style, frame: PLACE.frame || 'crop', exag: S.exag, aspect: S.aspect, vitrine: S.vitrine, base: Math.round((n * S.slab) / 100), trees: S.trees };
         const orbitLine = { ...ORBIT, dist: S.orbit.dist, pitch: S.orbit.pitch, speed: S.orbit.on ? S.orbit.speed : 0 };
         const text = `const PLACE = ${JSON.stringify(placeLine)};\nconst ORBIT = ${JSON.stringify(orbitLine)};`;
-        try { await navigator.clipboard.writeText(text); status('Settings copied'); setTimeout(() => status(''), 1500); } catch { status(text); }
+        await copyText(text, 'Settings');
       };
       const b1 = el('div', 'btns'), b2 = el('div', 'btns'); b1.append(glb); b2.append(link, cfg);
       P.append(section('Export', [b1, b2]));
