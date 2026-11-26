@@ -1,0 +1,154 @@
+---
+name: place-to-3d
+description: Turn any real place on Earth (a city, neighbourhood, street, mountain, canyon, island or coastline) into an interactive voxel 3D world in Spline, built from real terrain, buildings, parks, forests, roads and water. Use when the user asks for a 3D map, a 3D model or diorama of a real place, "my city / hometown / street in 3D", or voxel terrain of a real location.
+---
+
+# Place to 3D
+
+Builds a real place as a voxel world inside a Spline scene: elevation from
+the AWS Terrain Tiles, and buildings (with their mapped heights), roads,
+water, parks, forests, fields, sand, rock and glaciers from OpenStreetMap via
+OpenFreeMap. A 4 km city is 2–10M voxels; it builds in about half a second
+once the map data has loaded (1–2 s) and renders at hundreds of fps on a
+laptop.
+
+The scene stores only the place, the style and the framing. A script in the
+scene's HTML content fetches the map data and builds the voxels each time the
+scene plays, so the file stays small and any place is one edit away.
+
+Work in one Spline file over the Spline MCP server: create it with
+`spline_create_file` (`kind: "3d"`), pass its id as `file` on every call, and
+give the user its link.
+
+## 1. Choose the place
+
+Decide the centre (latitude, longitude) and the ground size:
+
+| Place | Size (`sizeM`) | Cells (`n`) |
+|---|---|---|
+| A street, campus or landmark | 1,500–3,000 m | 384–512 |
+| A city centre or neighbourhood | 3,000–6,000 m | 512 |
+| A mountain, canyon, island or coastline | 9,000–40,000 m | 512 |
+
+Buildings and roads are included only when a cell is 25 m or smaller
+(`sizeM / n ≤ 25`), and trees when it is 15 m or smaller, so keep cities
+under ~8 km. Never go above `n: 768`.
+
+Pick the centre deliberately. Geocoders return a city's administrative
+point, which can be off in a suburb; centre on what the user will recognise
+(Budapest: the Parliament, 47.507, 19.045; New York: Midtown, 40.748, −73.986).
+`examples/demos.json` has six tested settings.
+
+**If you can run commands,** check the place before building:
+
+```bash
+node scripts/cli.mjs "Budapest" --size 4000 --preview /tmp/place.png
+node scripts/cli.mjs --lat 47.507 --lon 19.045 --size 4000 --preview /tmp/place.png
+```
+
+It prints the frame, the buildings, roads and land cover it found, the
+terrain range and the biggest labels, and writes a top-down PNG. Look at the
+PNG: is the landmark in the middle, is the river or coast where it should be,
+is the area the right size? Adjust and rerun. (Node 18+, no install.)
+
+## 2. Choose the look
+
+- **Frame.** `crop` (default): a block cut out of the world, with strata on
+  the cut faces, a pedestal and a wireframe vitrine; it reads as a specimen,
+  best for showing a whole city or mountain. `immersive`: no walls; the
+  ground dissolves into the background at the edges, best for flying over a
+  place.
+- **Style.** `strata` (natural colours, warm rock strata), `night` (dark
+  blocks, glowing roads, lit windows), `snow` (fresh snow, warm windows) or
+  `model` (an architect's white model). Each style sets a background colour;
+  use it for the scene (step 3) so the immersive fade blends in.
+
+| Style | Background |
+|---|---|
+| `strata` | `#140e20` |
+| `night` | `#07080d` |
+| `snow` | `#c9d3df` |
+| `model` | `#d9d6cf` |
+
+## 3. Add a play camera
+
+A new file has no camera. In `3d_run_code` (after loading the authoring guide
+with `3d_load_skill`):
+
+```js
+const cam = add('PerspectiveCamera');
+rename('Camera');
+position({ x: 0, y: 600, z: 1200 });
+rotation({ x: -27 });
+setPlayCamera(cam);
+playControls('none'); // the scene script orbits it
+background('#140e20'); // the style's background
+```
+
+## 4. Add the builder
+
+Call `3d_set_html_content` with [`scripts/scene.html`](scripts/scene.html),
+editing only the `PLACE` and `ORBIT` lines:
+
+```js
+const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop', voxel: 1.2 };
+const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, speed: 5 };
+```
+
+- `voxel`: world units per voxel. Keep `voxel × n` near 600 (1.2 at `n: 512`,
+  1.6 at `n: 384`).
+- `exag` (optional): vertical exaggeration; default 1.2 for cities, 1.6 for
+  landscapes. Lower it (1.0–1.1) for high mountains.
+- `trees` (optional): `false` to skip voxel trees.
+- `ORBIT`: `dist` is the camera distance as a multiple of the place's width,
+  `pitch` its angle above the horizon, `speed` degrees per second (0 = still),
+  `yaw` the starting angle, `target` the point it circles. Crop: `dist`
+  1.4–2.0, `pitch` 20–30, `target` about `[0, 40, 0]` (higher for
+  mountains). Immersive: `dist` 0.55–0.7, `pitch` 22–28.
+
+**Inline the builder.** Paste the contents of
+`scripts/place-scene.bundle.js` (25 KB) into a `<script>` just above the
+template's script; the loader uses it when it's there. The template's
+`BUNDLE` URL (jsDelivr) only works once this repository is public.
+
+## Build, look, refine
+
+- **Build:** the camera (`3d_run_code`), then the scene document
+  (`3d_set_html_content`). The place builds itself in the viewer's browser,
+  2–3 s after the scene starts playing.
+- **Look:** hosted screenshots don't run scene scripts yet, so a capture can
+  show an empty scene even when the build works. Ask the user to press Play
+  in the Spline editor and to tell you what they see. If your screenshots do
+  show the voxels, trust them.
+- **Refine at least once with the user:** the centre (move it until the
+  landmark sits mid-frame), the size, the height (`exag`), the style and
+  frame, the camera's distance and angle. Each change is one
+  `3d_edit_html_content` find-and-replace on the `PLACE` or `ORBIT` line;
+  never resend the whole document to change a number.
+
+## Make a style
+
+A style in `scripts/builder/styles.js` is a table of colours: one row of
+colour stops per cell type (`cut`, `land`, `grass`, `wood`, `farmland`,
+`sand`, `rock`, `ice`, `wetland`, `water`, `road`, `building`, `roof`,
+`tree`), sampled by terrain height, building height or road class, plus
+`background`, `frame`, `pedestal`, `edge`, `ambient`, optional `glow` rows
+and `windows`. To give the user their own look, copy a style, change its
+colours, rebuild the bundle (`node scripts/build-bundle.mjs`) and inline it.
+You can also pass a style object as `PLACE.style` directly.
+
+Styles render on WebGPU in Spline's Play mode, Public URL and Code Export.
+WebGL2 and the `<spline-viewer>` embed show each style's flat `fallback`
+colour.
+
+## Keep
+
+- **The attribution line.** OpenStreetMap data is licensed under the ODbL:
+  the scene must show "© OpenStreetMap contributors". The template does.
+- **What's real and what isn't.** Columns are 2.5D: bridges, tunnels and
+  overhangs flatten. Buildings without a mapped height get a guess (7 m, or
+  14 m for big footprints). Trees are placed at random inside mapped forests
+  and parks. Say so if the user asks about accuracy.
+- **Shared tile servers.** Data comes from OpenFreeMap, AWS Open Data and,
+  for place names, Photon. Don't build a public search box that geocodes on
+  every keystroke.

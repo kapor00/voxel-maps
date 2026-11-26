@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body { background: transparent; margin: 0; }
+    #place-status { position: fixed; left: 12px; top: 12px; font: 12px/1.4 system-ui, sans-serif; color: #fff;
+      background: rgba(0, 0, 0, .5); padding: 6px 10px; border-radius: 6px; pointer-events: none; }
+    #place-status:empty { display: none; }
+    #place-attribution { position: fixed; right: 10px; bottom: 8px; font: 10px/1.3 system-ui, sans-serif;
+      color: rgba(255, 255, 255, .75); }
+  </style>
+</head>
+<body>
+  <div id="place-status">Loading map data…</div>
+  <div id="place-attribution"></div>
+  <script>
+    // ── edit these ──
+    const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop', voxel: 1.2 };
+    const ORBIT = { camera: 'Camera', dist: 1.05, pitch: 32, speed: 5 };
+    const BUNDLE = 'https://cdn.jsdelivr.net/gh/kapor00/place-to-3d@main/scripts/place-scene.bundle.js';
+
+    const status = (t) => (document.getElementById('place-status').textContent = t);
+    const run = async () => {
+      try {
+        const r = await SplinePlace.buildPlaceScene(spline, { ...PLACE, onStatus: status });
+        document.getElementById('place-attribution').textContent = r.attribution; // required by the OSM licence
+        status('');
+        SplinePlace.orbitCamera(spline, { ...ORBIT, extent: r.extent });
+      } catch (e) { status('Could not build the place: ' + (e && e.message || e)); }
+    };
+    if (window.SplinePlace) run(); // bundle pasted inline above this script
+    else {
+      const s = document.createElement('script');
+      s.src = BUNDLE; s.onload = run; s.onerror = () => status('Could not load the place builder');
+      document.head.appendChild(s);
+    }
+  </script>
+</body>
+</html>
