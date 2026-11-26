@@ -1,9 +1,130 @@
 {
-  "_note": "PLACE and ORBIT values for scripts/scene.html behind each image in assets/. Set the Spline background to the style's background colour (see STYLES in scripts/builder/styles.js).",
-  "budapest-strata-crop": { "place": { "name": "Budapest", "lat": 47.507, "lon": 19.045, "sizeM": 4000, "n": 512, "style": "strata", "frame": "crop", "voxel": 1.2 }, "orbit": { "dist": 1.45, "pitch": 27, "yaw": 205, "target": [0, 40, 0] } },
-  "manhattan-night-crop": { "place": { "name": "Manhattan", "lat": 40.7484, "lon": -73.9857, "sizeM": 4000, "n": 512, "style": "night", "frame": "crop", "voxel": 1.2 }, "orbit": { "dist": 1.45, "pitch": 26, "yaw": 160, "target": [0, 50, 0] } },
-  "grand-canyon-strata-crop": { "place": { "name": "Grand Canyon", "lat": 36.0886, "lon": -112.115, "sizeM": 20000, "n": 512, "style": "strata", "frame": "crop", "voxel": 1.2 }, "orbit": { "dist": 1.6, "pitch": 24, "yaw": 215, "target": [0, 70, 0] } },
-  "matterhorn-snow-crop": { "place": { "name": "Matterhorn", "lat": 45.9763, "lon": 7.6586, "sizeM": 9000, "n": 512, "style": "snow", "frame": "crop", "voxel": 1.2, "exag": 1.1 }, "orbit": { "dist": 2.0, "pitch": 20, "yaw": 160, "target": [0, 150, 0] } },
-  "rio-strata-immersive": { "place": { "name": "Rio de Janeiro", "lat": -22.96, "lon": -43.19, "sizeM": 9000, "n": 512, "style": "strata", "frame": "immersive", "voxel": 1.2 }, "orbit": { "dist": 0.6, "pitch": 26, "yaw": 200, "target": [0, 30, 0] } },
-  "venice-model-crop": { "place": { "name": "Venice", "lat": 45.438, "lon": 12.334, "sizeM": 3000, "n": 512, "style": "model", "frame": "crop", "voxel": 1.2 }, "orbit": { "dist": 1.45, "pitch": 32, "yaw": 180, "target": [0, 30, 0] } }
+  "_note": "PLACE and ORBIT values for scripts/scene.html behind each image in assets/, with SCENE.worldWidth 614. Set the Spline background to the style's background colour (see STYLES in scripts/builder/styles.js).",
+  "budapest-strata-crop": {
+    "place": {
+      "name": "Budapest",
+      "lat": 47.507,
+      "lon": 19.045,
+      "sizeM": 4000,
+      "n": 512,
+      "style": "strata",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.45,
+      "pitch": 27,
+      "yaw": 205,
+      "target": [
+        0,
+        40,
+        0
+      ]
+    }
+  },
+  "manhattan-night-crop": {
+    "place": {
+      "name": "Manhattan",
+      "lat": 40.7484,
+      "lon": -73.9857,
+      "sizeM": 4000,
+      "n": 512,
+      "style": "night",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.45,
+      "pitch": 26,
+      "yaw": 160,
+      "target": [
+        0,
+        50,
+        0
+      ]
+    }
+  },
+  "grand-canyon-strata-crop": {
+    "place": {
+      "name": "Grand Canyon",
+      "lat": 36.0886,
+      "lon": -112.115,
+      "sizeM": 20000,
+      "n": 512,
+      "style": "strata",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.6,
+      "pitch": 24,
+      "yaw": 215,
+      "target": [
+        0,
+        70,
+        0
+      ]
+    }
+  },
+  "matterhorn-snow-crop": {
+    "place": {
+      "name": "Matterhorn",
+      "lat": 45.9763,
+      "lon": 7.6586,
+      "sizeM": 9000,
+      "n": 512,
+      "style": "snow",
+      "frame": "crop",
+      "exag": 1.1
+    },
+    "orbit": {
+      "dist": 1.75,
+      "pitch": 20,
+      "yaw": 160,
+      "target": [
+        0,
+        130,
+        0
+      ]
+    }
+  },
+  "rio-strata-immersive": {
+    "place": {
+      "name": "Rio de Janeiro",
+      "lat": -22.96,
+      "lon": -43.19,
+      "sizeM": 9000,
+      "n": 512,
+      "style": "strata",
+      "frame": "immersive"
+    },
+    "orbit": {
+      "dist": 0.6,
+      "pitch": 26,
+      "yaw": 200,
+      "target": [
+        0,
+        30,
+        0
+      ]
+    }
+  },
+  "venice-model-crop": {
+    "place": {
+      "name": "Venice",
+      "lat": 45.438,
+      "lon": 12.334,
+      "sizeM": 3000,
+      "n": 512,
+      "style": "model",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.45,
+      "pitch": 32,
+      "yaw": 180,
+      "target": [
+        0,
+        30,
+        0
+      ]
+    }
+  }
 }

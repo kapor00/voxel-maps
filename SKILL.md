@@ -12,9 +12,24 @@ OpenFreeMap. A 4 km city is 2–10M voxels; it builds in about half a second
 once the map data has loaded (1–2 s) and renders at hundreds of fps on a
 laptop.
 
-The scene stores only the place, the style and the framing. A script in the
-scene's HTML content fetches the map data and builds the voxels each time the
-scene plays, so the file stays small and any place is one edit away.
+Two ways to put it in a scene:
+
+- **Live** (default): the scene stores only the place, the style and the
+  framing. A script in the scene's HTML content fetches the map data and
+  builds the voxels each time the scene plays, so the file stays small, any
+  place is one edit away, and a small panel in the scene lets the viewer
+  search for another place and change the size, detail, height, style and
+  frame. The voxels exist only while it plays.
+- **Baked**: the place becomes ordinary Spline objects saved in the file:
+  one mesh per material per band of rows, grouped under the place's name, with
+  one material asset per class (Ground, Grass, Forest, Water, Roads, Roofs,
+  Building Walls, Strata, …). The user can select, move, delete and restyle
+  them in the editor, and they render everywhere, `<spline-viewer>` and WebGL
+  included. It needs a terminal (see "Bake" below) and is coarser: 96–224
+  cells per side instead of 512.
+
+Use live unless the user wants to edit the voxels themselves, or needs the
+place in an embed or on WebGL.
 
 Work in one Spline file over the Spline MCP server: create it with
 `spline_create_file` (`kind: "3d"`), pass its id as `file` on every call, and
@@ -53,14 +68,16 @@ is the area the right size? Adjust and rerun. (Node 18+, no install.)
 
 ## 2. Choose the look
 
-- **Frame.** `crop` (default): a block cut out of the world, with strata on
-  the cut faces, a pedestal and a wireframe vitrine; it reads as a specimen,
-  best for showing a whole city or mountain. `immersive`: no walls; the
+- **Frame.** `crop` (default): a block cut out of the world, standing on a
+  slab of rock strata, with a pedestal and a wireframe vitrine; it reads as a
+  specimen, best for showing a whole city or mountain. It can be a 3:2 or 2:1
+  strip (`aspect`) for a river, coast or ridge. `immersive`: no walls; the
   ground dissolves into the background at the edges, best for flying over a
   place.
-- **Style.** `strata` (natural colours, warm rock strata), `night` (dark
-  blocks, glowing roads, lit windows), `snow` (fresh snow, warm windows) or
-  `model` (an architect's white model). Each style sets a background colour;
+- **Style.** `strata` (vivid: sunlit sand and ochre ground, saturated
+  greens and blues, terracotta roofs, bold rust strata on the cut), `night`
+  (dark blocks, glowing roads, lit windows), `snow` (fresh snow, warm
+  windows) or `model` (an architect's white model). Each style sets a background colour;
   use it for the scene (step 3) so the immersive fade blends in.
 
 | Style | Background |
@@ -88,26 +105,44 @@ background('#140e20'); // the style's background
 ## 4. Add the builder
 
 Call `3d_set_html_content` with [`scripts/scene.html`](scripts/scene.html),
-editing only the `PLACE` and `ORBIT` lines:
+editing only the `PLACE`, `ORBIT` and `SCENE` lines:
 
 ```js
-const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop', voxel: 1.2 };
-const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, speed: 5 };
+const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop' };
+const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
+const SCENE = { background: '#140e20', ui: true, worldWidth: 614 };
 ```
 
-- `voxel`: world units per voxel. Keep `voxel × n` near 600 (1.2 at `n: 512`,
-  1.6 at `n: 384`).
-- `exag` (optional): vertical exaggeration; default 1.2 for cities, 1.6 for
-  landscapes. Lower it (1.0–1.1) for high mountains.
-- `trees` (optional): `false` to skip voxel trees.
-- `ORBIT`: `dist` is the camera distance as a multiple of the place's width,
-  `pitch` its angle above the horizon, `speed` degrees per second (0 = still),
-  `yaw` the starting angle, `target` the point it circles. Crop: `dist`
-  1.4–2.0, `pitch` 20–30, `target` about `[0, 40, 0]` (higher for
-  mountains). Immersive: `dist` 0.55–0.7, `pitch` 22–28.
+`PLACE` options beyond the ones in step 1 and 2 (all optional):
+
+- `exag`: vertical exaggeration; default 1.2 for cities, 1.6 for landscapes.
+  Lower it (1.0–1.1) for high mountains.
+- `trees`: `false` to skip voxel trees.
+- Crop only: `base`, the slab's depth in voxels (default 6% of `n`; more
+  for a deeper cut); `vitrine`, the wireframe's height as a multiple (0 hides
+  it); `aspect`, width ÷ depth (1, 1.5 or 2).
+
+`ORBIT`: `dist` is the camera distance as a multiple of the place's width,
+`pitch` its angle above the horizon, `speed` degrees per second (0 = still),
+`yaw` the starting angle, `target` the point it circles (by default a little
+above the ground, higher for tall places). Crop: `dist` 1.4–2.0, `pitch`
+20–30. Immersive: `dist` 0.55–0.7, `pitch` 22–28.
+
+`SCENE`: `background` is the colour you gave the scene in step 3 (scripts
+can't read it, and the immersive edge fades into it); `ui: false` hides the
+panel (for a clean published embed); `worldWidth` is the place's width in
+world units, whatever `n` is, so the camera and lights you set keep working
+when the viewer changes the detail.
+
+**The panel.** With `ui: true` the scene shows a small panel: search a place
+(Enter; it geocodes once per search, never per keystroke), then Size, Detail
+(`n`), Height (`exag`), Style, Frame, and for a crop the Slab, Vitrine and
+Shape. Build rebuilds in place; Copy link copies the page URL with
+`?place=lat,lon,km&style=&frame=`, which the scene reads on load, so one
+published scene can show any place.
 
 **Inline the builder.** Paste the contents of
-`scripts/place-scene.bundle.js` (25 KB) into a `<script>` just above the
+`scripts/place-scene.bundle.js` (27 KB) into a `<script>` just above the
 template's script; the loader uses it when it's there. The template's
 `BUNDLE` URL (jsDelivr) only works once this repository is public.
 
@@ -124,7 +159,37 @@ template's script; the loader uses it when it's there. The template's
   landmark sits mid-frame), the size, the height (`exag`), the style and
   frame, the camera's distance and angle. Each change is one
   `3d_edit_html_content` find-and-replace on the `PLACE` or `ORBIT` line;
-  never resend the whole document to change a number.
+  never resend the whole document to change a number. The user can also try
+  settings in the panel and paste you the link it copies.
+
+## Bake into editable objects
+
+When the user wants to edit the voxels in Spline, or needs the place outside
+Play mode, bake it. With a terminal:
+
+```bash
+node scripts/bake.mjs "Budapest" --size 4000 --n 160 --style strata --out /tmp/bake-budapest
+node scripts/bake.mjs --lat 47.507 --lon 19.045 --name Budapest --n 160 --frame crop --aspect 1.5
+```
+
+It writes a short series of scripts (`00-setup.js`, `01-band.js`, …,
+`NN-frame.js`, `NN-group.js`) and prints their sizes. Run each one, in
+order, as the `code` of one `3d_run_code` call, unchanged: read the file and
+pass its contents. They create the material assets and the background,
+then the meshes band by band, then the pedestal and vitrine, then group
+everything as "<name> (baked)" and frame the view. Each band reports how many
+meshes it made; if one fails, rerun that file alone.
+
+- `--n` (96–224, default 160) trades detail for size: a city at 160 is about
+  40 KB of scripts (≈ 13k tokens) in 5–7 calls. Go lower for a quick look.
+- The same options as live: `--style`, `--frame`, `--slab` (percent of `n`),
+  `--vitrine`, `--aspect`, `--exag`, `--width` (world units, default 614).
+- Colours come from the style's palette, one flat colour per material. To
+  restyle, change the "<name> Roofs" (etc.) material assets in Spline; every
+  mesh using it follows.
+- Baked meshes are real objects, so hosted screenshots show them: check the
+  result with `3d_take_screenshot`.
+- An agent without a terminal (ChatGPT) can't bake; build it live.
 
 ## Make a style
 
@@ -133,13 +198,15 @@ colour stops per cell type (`cut`, `land`, `grass`, `wood`, `farmland`,
 `sand`, `rock`, `ice`, `wetland`, `water`, `road`, `building`, `roof`,
 `tree`), sampled by terrain height, building height or road class, plus
 `background`, `frame`, `pedestal`, `edge`, `ambient`, optional `glow` rows
-and `windows`. To give the user their own look, copy a style, change its
-colours, rebuild the bundle (`node scripts/build-bundle.mjs`) and inline it.
-You can also pass a style object as `PLACE.style` directly.
+and `windows`, and a `flat` table of plain colours. To give the user their
+own look, copy a style, change its colours, rebuild the bundle
+(`node scripts/build-bundle.mjs`) and inline it. You can also pass a style
+object as `PLACE.style` directly.
 
-Styles render on WebGPU in Spline's Play mode, Public URL and Code Export.
-WebGL2 and the `<spline-viewer>` embed show each style's flat `fallback`
-colour.
+Live styles render on WebGPU in Spline's Play mode, Public URL and Code
+Export; WebGL2 and the `<spline-viewer>` embed show each style's flat
+`fallback` colour. A baked place uses ordinary Spline materials and looks the
+same everywhere.
 
 ## Keep
 

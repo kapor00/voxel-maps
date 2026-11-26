@@ -68,7 +68,9 @@ export function placeColumns(pack, { exag, trees = true, base: baseVox } = {}) {
  * Surface meshes for the columns: vertex data ready for spline.createObject('CustomMesh', …).
  * @param o.voxel world units per voxel · o.frame 'crop' | 'immersive'
  */
-export function meshColumns({ n, terr, col, u, v }, { voxel = 1.2, frame = 'crop', chunk = 64, maxVerts = 59996 } = {}) {
+export function meshColumns({ n, terr, col, u, v }, { voxel = 1.2, frame = 'crop', aspect = 1, chunk = 64, maxVerts = 59996 } = {}) {
+  // aspect > 1 keeps every column but only a centred band of rows: a wider-than-deep crop
+  const rowsN = Math.max(8, Math.min(n, Math.round(n / Math.max(1, aspect)))), zA = Math.floor((n - rowsN) / 2), zB = zA + rowsN;
   const meshes = [];
   let V = [], NN = [], UV = [], I = [], voxels = 0, maxCol = 0;
   const flush = () => { if (!V.length) return; meshes.push({ vertices: new Float32Array(V), normals: NN, uvs: UV, indices: I }); V = []; NN = []; UV = []; I = []; };
@@ -80,7 +82,7 @@ export function meshColumns({ n, terr, col, u, v }, { voxel = 1.2, frame = 'crop
     I.push(i0, i0 + 1, i0 + 2, i0, i0 + 2, i0 + 3);
   };
   const cutV = rowV('cut'), waterV = rowV('water');
-  const off = (-n * voxel) / 2;
+  const off = (-n * voxel) / 2, offZ = -(zA + rowsN / 2) * voxel;
   // a side face from height lo to hi (in voxels) on one side of a column
   const wall = (side, x0, x1, z0, z1, lo, hi, uu, vv) => {
     const a = lo * voxel, b = hi * voxel;
@@ -91,13 +93,13 @@ export function meshColumns({ n, terr, col, u, v }, { voxel = 1.2, frame = 'crop
   };
   const DX = [1, -1, 0, 0], DZ = [0, 0, 1, -1];
   for (let cz = 0; cz < n; cz += chunk) for (let cx = 0; cx < n; cx += chunk) {
-    for (let z = cz; z < Math.min(n, cz + chunk); z++) for (let x = cx; x < Math.min(n, cx + chunk); x++) {
+    for (let z = Math.max(cz, zA); z < Math.min(zB, cz + chunk); z++) for (let x = cx; x < Math.min(n, cx + chunk); x++) {
       const k = z * n + x, h = col[k], y = h * voxel, uu = u[k], vv = v[k];
       voxels += h; if (h > maxCol) maxCol = h;
-      const x0 = off + x * voxel, x1 = x0 + voxel, z0 = off + z * voxel, z1 = z0 + voxel;
+      const x0 = off + x * voxel, x1 = x0 + voxel, z0 = offZ + z * voxel, z1 = z0 + voxel;
       quad([x0, y, z0], [x0, y, z1], [x1, y, z1], [x1, y, z0], [0, 1, 0], uu, vv);
       for (let s = 0; s < 4; s++) {
-        const nx = x + DX[s], nz = z + DZ[s], outside = nx < 0 || nz < 0 || nx >= n || nz >= n;
+        const nx = x + DX[s], nz = z + DZ[s], outside = nx < 0 || nz < zA || nx >= n || nz >= zB;
         if (outside) {
           if (frame !== 'crop') continue; // immersive: the edge dissolves, no walls
           // the cut: strata from the base to the ground, then whatever stands on it (buildings, trees)
@@ -115,20 +117,21 @@ export function meshColumns({ n, terr, col, u, v }, { voxel = 1.2, frame = 'crop
     }
     flush();
   }
-  return { meshes, voxels, height: maxCol * voxel, width: n * voxel };
+  return { meshes, voxels, height: maxCol * voxel, width: n * voxel, depth: rowsN * voxel };
 }
 
 /** The crop's pedestal and wireframe: plain Spline objects, so they stay editable in the scene. */
-async function addCropFrame(spline, { width, height, style, parent }) {
+async function addCropFrame(spline, { width, depth = width, height, style, parent, vitrine = 1 }) {
   const ids = [], P = parent ? { parent } : {};
-  const ped = await spline.createObject('Cube', { name: 'Place Pedestal', width: width * 1.002, height: width * 0.03, depth: width * 1.002, cornerRadius: 0, position: [0, -width * 0.015, 0], material: style.pedestal, ...P });
+  const ped = await spline.createObject('Cube', { name: 'Place Pedestal', width: width * 1.002, height: width * 0.03, depth: depth * 1.002, cornerRadius: 0, position: [0, -width * 0.015, 0], material: style.pedestal, ...P });
   if (ped?.id) ids.push(ped.id);
-  const h = Math.max(height * 1.3, width * 0.4), t = Math.max(0.35, width * 0.001), half = width / 2;
+  if (!(vitrine > 0)) return ids; // vitrine: 0 hides the wireframe
+  const h = Math.max(height * 1.15, width * 0.4) * vitrine, t = Math.max(0.35, width * 0.001), half = width / 2, halfZ = depth / 2;
   const edges = [];
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) edges.push({ position: [sx * half, h / 2, sz * half], width: t, height: h, depth: t });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) edges.push({ position: [sx * half, h / 2, sz * halfZ], width: t, height: h, depth: t });
   for (const y of [0, h]) {
-    for (const sz of [-1, 1]) edges.push({ position: [0, y, sz * half], width, height: t, depth: t });
-    for (const sx of [-1, 1]) edges.push({ position: [sx * half, y, 0], width: t, height: t, depth: width });
+    for (const sz of [-1, 1]) edges.push({ position: [0, y, sz * halfZ], width, height: t, depth: t });
+    for (const sx of [-1, 1]) edges.push({ position: [sx * half, y, 0], width: t, height: t, depth });
   }
   for (const e of edges) {
     const r = await spline.createObject('Cube', { name: 'Place Frame', cornerRadius: 0, material: { color: style.frame, alpha: 45 }, ...e, ...P });
@@ -144,7 +147,11 @@ async function addCropFrame(spline, { width, height, style, parent }) {
  * @param o.name label for the place · o.sizeM ground size in metres · o.n cells per side (512)
  * @param o.style a STYLES key or a style object · o.frame 'crop' (default) | 'immersive'
  * @param o.voxel world units per voxel (1.2) · o.exag vertical exaggeration · o.trees voxel trees (true)
- * @param o.parent a group name/id for everything created · o.onStatus (text) => void
+ * @param o.base crop: slab depth in voxels (default 6% of n) · o.vitrine crop: wireframe height ×, 0 = none (1)
+ * @param o.aspect crop: width ÷ depth, ≥ 1 (1 = square)
+ * @param o.background the scene's page colour, if it differs from the style's (the immersive edge fades into it)
+ * @param o.onStatus (text) => void
+ * Everything is created inside a new Group (result.groupId): hide it to clear the place before building another.
  */
 export async function buildPlaceScene(spline, o = {}) {
   const say = o.onStatus || (() => {});
@@ -156,28 +163,39 @@ export async function buildPlaceScene(spline, o = {}) {
   say('Building voxels…');
   const frame = o.frame === 'immersive' ? 'immersive' : 'crop';
   const style = typeof o.style === 'object' ? o.style : STYLES[o.style || 'strata'] || STYLES.strata;
+  const look = o.background ? { ...style, background: o.background } : style;
   // a crop stands on a slab ~6% of its width deep, so the cut reads as layers of rock
   const n = pack.meta.n;
-  const cols = placeColumns(pack, { exag: o.exag, trees: o.trees, base: frame === 'crop' ? Math.max(6, Math.round(n * 0.06)) : 2 });
+  const base = frame === 'crop' ? Math.max(4, Math.round(o.base ?? n * 0.06)) : 2;
+  const cols = placeColumns(pack, { exag: o.exag, trees: o.trees, base });
   const voxel = o.voxel ?? 1.2;
-  const { meshes, voxels, height, width } = meshColumns(cols, { voxel, frame });
+  const { meshes, voxels, height, width, depth } = meshColumns(cols, { voxel, frame, aspect: frame === 'crop' ? o.aspect ?? 1 : 1 });
   let material = style.fallback;
   try {
     const fade = frame === 'immersive' ? { radius: width / 2, start: 0.55 } : undefined;
-    material = await spline.createCustomMaterial((three) => voxelMaterial(three, style, { voxel, fade }));
+    const band = Math.max(2, Math.round(base / 5)); // strata in ~5 bands across the slab
+    material = await spline.createCustomMaterial((three) => voxelMaterial(three, look, { voxel, band, fade }));
   } catch (e) { console.warn('[place] custom material unavailable, using a flat colour:', e?.message || e); }
-  const ids = [], P = o.parent ? { parent: o.parent } : {};
+  const group = await spline.createObject('Group', { name: `Place: ${pack.meta.name}` });
+  const ids = [], P = group?.id ? { parent: group.id } : {};
   for (const g of meshes) {
     const r = await spline.createObject('CustomMesh', { ...g, material, name: 'Place Voxels', ...P });
     if (r?.id) ids.push(r.id);
   }
-  if (frame === 'crop') ids.push(...(await addCropFrame(spline, { width, height, style, parent: o.parent })));
+  if (frame === 'crop') ids.push(...(await addCropFrame(spline, { width, depth, height, style, parent: group?.id, vitrine: o.vitrine ?? 1 })));
   say('');
   return {
     name: pack.meta.name, attribution: pack.meta.attribution, labels: pack.labels, background: style.background,
-    n: cols.n, cellM: pack.meta.cell, voxels, trees: cols.trees, meshes: meshes.length, ids, extent: width, height, frame,
+    n: cols.n, cellM: pack.meta.cell, voxels, trees: cols.trees, meshes: meshes.length, ids, groupId: group?.id, extent: width, depth, height, frame, lat: pack.meta.lat, lon: pack.meta.lon,
     ms: { data: Math.round(tData - t0), build: Math.round(performance.now() - tData) },
   };
+}
+
+/** Remove a place built by buildPlaceScene (its meshes, frame and group). */
+export async function removePlace(spline, result) {
+  if (!result) return;
+  for (const id of result.ids || []) { try { await spline.removeObject(id); } catch {} }
+  if (result.groupId) { try { await spline.removeObject(result.groupId); } catch {} }
 }
 
 /**

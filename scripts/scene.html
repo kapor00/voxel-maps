@@ -4,31 +4,159 @@
   <meta charset="utf-8">
   <style>
     html, body { background: transparent; margin: 0; }
-    #place-status { position: fixed; left: 12px; top: 12px; font: 12px/1.4 system-ui, sans-serif; color: #fff;
-      background: rgba(0, 0, 0, .5); padding: 6px 10px; border-radius: 6px; pointer-events: none; }
+    #place-status { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); font: 12px/1.4 system-ui, sans-serif; color: #fff;
+      background: rgba(0, 0, 0, .55); padding: 6px 12px; border-radius: 999px; pointer-events: none; }
     #place-status:empty { display: none; }
-    #place-attribution { position: fixed; right: 10px; bottom: 8px; font: 10px/1.3 system-ui, sans-serif;
-      color: rgba(255, 255, 255, .75); }
+    #place-attribution { position: fixed; right: 10px; bottom: 8px; font: 10px/1.3 system-ui, sans-serif; color: rgba(255, 255, 255, .75); }
+    #place-ui { position: fixed; left: 14px; top: 14px; width: 248px; font: 12px/1.35 system-ui, sans-serif; color: #eceaf4;
+      background: rgba(16, 13, 26, .78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, .09); border-radius: 12px; padding: 10px 12px 12px; box-sizing: border-box; }
+    #place-ui.closed .body { display: none; }
+    #place-ui header { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; }
+    #place-ui header button { all: unset; cursor: pointer; opacity: .7; padding: 0 2px; }
+    #place-ui .body { margin-top: 8px; display: grid; gap: 8px; }
+    #place-ui label { display: grid; grid-template-columns: 64px 1fr 52px; align-items: center; gap: 6px; color: #b9b4cc; }
+    #place-ui label.wide { grid-template-columns: 64px 1fr; }
+    #place-ui output { text-align: right; color: #eceaf4; font-variant-numeric: tabular-nums; }
+    #place-ui input[type=text], #place-ui select { width: 100%; box-sizing: border-box; background: rgba(255, 255, 255, .07); color: #fff;
+      border: 1px solid rgba(255, 255, 255, .12); border-radius: 7px; padding: 6px 8px; font: inherit; outline: none; }
+    #place-ui input[type=range] { width: 100%; accent-color: #f0a35a; }
+    #place-ui .row { display: flex; gap: 6px; }
+    #place-ui .row button { flex: 1; }
+    #place-ui button.btn { cursor: pointer; border: 0; border-radius: 7px; padding: 7px 8px; font: inherit; font-weight: 600;
+      background: #f0a35a; color: #1a1020; }
+    #place-ui button.ghost { background: rgba(255, 255, 255, .1); color: #fff; font-weight: 500; }
+    #place-ui .results { display: grid; gap: 2px; }
+    #place-ui .results button { all: unset; cursor: pointer; padding: 5px 7px; border-radius: 6px; color: #e7e3f2; }
+    #place-ui .results button:hover { background: rgba(255, 255, 255, .1); }
+    #place-ui .muted { color: #8f89a6; font-size: 11px; }
+    #place-ui fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+    #place-ui fieldset[disabled] { opacity: .4; }
   </style>
 </head>
 <body>
   <div id="place-status">Loading map data…</div>
   <div id="place-attribution"></div>
+  <div id="place-ui" hidden>
+    <header><span id="ui-title">Place to 3D</span><button id="ui-toggle" title="Show or hide">–</button></header>
+    <div class="body">
+      <input id="ui-search" type="text" placeholder="Search a place and press Enter" autocomplete="off">
+      <div id="ui-results" class="results"></div>
+      <label>Size<input id="ui-size" type="range" min="0" max="100" step="1"><output id="ui-size-v"></output></label>
+      <label>Detail<input id="ui-n" type="range" min="192" max="640" step="64"><output id="ui-n-v"></output></label>
+      <label>Height<input id="ui-exag" type="range" min="0.5" max="3" step="0.1"><output id="ui-exag-v"></output></label>
+      <label class="wide">Style<select id="ui-style"></select></label>
+      <label class="wide">Frame<select id="ui-frame"><option value="crop">Crop</option><option value="immersive">Immersive</option></select></label>
+      <fieldset id="ui-crop">
+        <label>Slab<input id="ui-base" type="range" min="2" max="16" step="1"><output id="ui-base-v"></output></label>
+        <label>Vitrine<input id="ui-vitrine" type="range" min="0" max="2" step="0.1"><output id="ui-vitrine-v"></output></label>
+        <label class="wide">Shape<select id="ui-aspect"><option value="1">Square</option><option value="1.5">3 : 2</option><option value="2">2 : 1</option></select></label>
+      </fieldset>
+      <div class="muted" id="ui-info"></div>
+      <div class="row"><button class="btn" id="ui-build">Build</button><button class="btn ghost" id="ui-orbit">Pause</button><button class="btn ghost" id="ui-share">Copy link</button></div>
+    </div>
+  </div>
   <script>
     // ── edit these ──
-    const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop', voxel: 1.2 };
-    const ORBIT = { camera: 'Camera', dist: 1.05, pitch: 32, speed: 5 };
+    const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop' };
+    const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
+    const SCENE = { background: '#140e20', ui: true, worldWidth: 614 }; // the file's background colour, whether to show the panel, world units across
     const BUNDLE = 'https://cdn.jsdelivr.net/gh/kapor00/place-to-3d@main/scripts/place-scene.bundle.js';
 
-    const status = (t) => (document.getElementById('place-status').textContent = t);
-    const run = async () => {
+    const $ = (id) => document.getElementById(id);
+    const status = (t) => ($('place-status').textContent = t);
+    // a shared link can carry the place: ?place=lat,lon,km&style=…&frame=…
+    try {
+      const q = new URLSearchParams(location.search), pl = (q.get('place') || '').split(',').map(Number);
+      if (pl.length >= 2 && pl.every(Number.isFinite)) Object.assign(PLACE, { lat: pl[0], lon: pl[1], name: q.get('name') || `${pl[0].toFixed(3)}, ${pl[1].toFixed(3)}` }, pl[2] ? { sizeM: pl[2] * 1000 } : {});
+      for (const k of ['style', 'frame']) if (q.get(k)) PLACE[k] = q.get(k);
+    } catch {}
+
+    let built = null, stopOrbit = () => {}, busy = false, orbiting = true;
+    const build = async () => {
+      if (busy) return; busy = true;
       try {
-        const r = await SplinePlace.buildPlaceScene(spline, { ...PLACE, onStatus: status });
-        document.getElementById('place-attribution').textContent = r.attribution; // required by the OSM licence
+        stopOrbit();
+        await SplinePlace.removePlace(spline, built);
+        built = null;
+        const voxel = SCENE.worldWidth / (PLACE.n || 512); // the place always spans the same width in the scene
+        built = await SplinePlace.buildPlaceScene(spline, { ...PLACE, voxel, background: SCENE.background, onStatus: status });
+        $('place-attribution').textContent = built.attribution; // required by the OSM licence
         status('');
-        SplinePlace.orbitCamera(spline, { ...ORBIT, extent: r.extent });
+        const target = ORBIT.target || [0, Math.min(built.height * 0.35, built.extent * 0.25), 0];
+        const dist = ORBIT.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45);
+        if (orbiting) stopOrbit = await SplinePlace.orbitCamera(spline, { ...ORBIT, dist, target, extent: built.extent });
+        else stopOrbit = await SplinePlace.orbitCamera(spline, { ...ORBIT, dist, target, extent: built.extent, speed: 0 });
+        $('ui-info').textContent = `${built.name} · ${(built.voxels / 1e6).toFixed(1)}M voxels · ${Math.round(built.cellM)} m per voxel · ${((built.ms.data + built.ms.build) / 1000).toFixed(1)} s`;
       } catch (e) { status('Could not build the place: ' + (e && e.message || e)); }
+      busy = false;
     };
+
+    // ── the panel ──
+    const sizeToM = (v) => Math.round(500 * Math.pow(80, v / 100)); // 0.5 km … 40 km, logarithmic
+    const mToSize = (m) => Math.round((100 * Math.log(m / 500)) / Math.log(80));
+    const show = () => {
+      $('ui-size-v').textContent = (sizeToM(+$('ui-size').value) / 1000).toFixed(1) + ' km';
+      $('ui-n-v').textContent = $('ui-n').value; $('ui-exag-v').textContent = (+$('ui-exag').value).toFixed(1) + '×';
+      $('ui-base-v').textContent = $('ui-base').value + '%'; $('ui-vitrine-v').textContent = (+$('ui-vitrine').value).toFixed(1) + '×';
+      $('ui-crop').disabled = $('ui-frame').value !== 'crop';
+    };
+    const readPanel = () => {
+      const n = +$('ui-n').value;
+      Object.assign(PLACE, {
+        sizeM: sizeToM(+$('ui-size').value), n, exag: +$('ui-exag').value, style: $('ui-style').value, frame: $('ui-frame').value,
+        base: Math.round((n * +$('ui-base').value) / 100), vitrine: +$('ui-vitrine').value, aspect: +$('ui-aspect').value,
+      });
+    };
+    const initPanel = () => {
+      if (!SCENE.ui) return;
+      $('place-ui').hidden = false;
+      $('ui-style').innerHTML = Object.entries(SplinePlace.STYLES).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
+      $('ui-size').value = mToSize(PLACE.sizeM || 4000); $('ui-n').value = PLACE.n || 512;
+      $('ui-exag').value = PLACE.exag ?? ((PLACE.sizeM || 4000) / (PLACE.n || 512) > 25 ? 1.6 : 1.2);
+      $('ui-style').value = PLACE.style || 'strata'; $('ui-frame').value = PLACE.frame || 'crop';
+      $('ui-base').value = PLACE.base ? Math.round((PLACE.base / (PLACE.n || 512)) * 100) : 6;
+      $('ui-vitrine').value = PLACE.vitrine ?? 1; $('ui-aspect').value = String(PLACE.aspect || 1);
+      $('ui-title').textContent = PLACE.name || 'Place to 3D';
+      show();
+      for (const el of document.querySelectorAll('#place-ui input[type=range], #place-ui select')) el.addEventListener('input', show);
+      $('ui-toggle').onclick = () => { const c = $('place-ui').classList.toggle('closed'); $('ui-toggle').textContent = c ? '+' : '–'; };
+      $('ui-build').onclick = () => { readPanel(); build(); };
+      $('ui-orbit').onclick = async () => {
+        orbiting = !orbiting; $('ui-orbit').textContent = orbiting ? 'Pause' : 'Orbit';
+        if (!built) return; stopOrbit();
+        stopOrbit = await SplinePlace.orbitCamera(spline, { ...ORBIT, dist: ORBIT.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45), target: ORBIT.target || [0, Math.min(built.height * 0.35, built.extent * 0.25), 0], extent: built.extent, speed: orbiting ? ORBIT.speed : 0 });
+      };
+      $('ui-share').onclick = async () => {
+        readPanel();
+        const u = new URL(location.href);
+        u.searchParams.set('place', [PLACE.lat.toFixed(5), PLACE.lon.toFixed(5), (PLACE.sizeM / 1000).toFixed(1)].join(','));
+        u.searchParams.set('name', PLACE.name); u.searchParams.set('style', PLACE.style); u.searchParams.set('frame', PLACE.frame);
+        try { await navigator.clipboard.writeText(u.toString()); status('Link copied'); setTimeout(() => status(''), 1500); } catch { status(u.toString()); }
+      };
+      // search runs on Enter only: the geocoder is a shared service, not a search-as-you-type API
+      $('ui-search').addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter' || !e.target.value.trim()) return;
+        $('ui-results').textContent = 'Searching…';
+        try {
+          const hits = await SplinePlace.geocode(e.target.value.trim(), { limit: 5 });
+          $('ui-results').innerHTML = '';
+          if (!hits.length) $('ui-results').textContent = 'Nothing found';
+          for (const h of hits) {
+            const b = document.createElement('button');
+            b.textContent = h.name;
+            b.onclick = () => {
+              Object.assign(PLACE, { name: h.name.split(',')[0], lat: h.lat, lon: h.lon });
+              if (h.extentM) $('ui-size').value = mToSize(Math.min(40000, Math.max(1000, h.extentM * 1.1)));
+              $('ui-title').textContent = PLACE.name; $('ui-results').innerHTML = ''; show(); readPanel(); build();
+            };
+            $('ui-results').appendChild(b);
+          }
+        } catch (err) { $('ui-results').textContent = 'Search failed: ' + (err.message || err); }
+      });
+    };
+
+    const run = () => { initPanel(); build(); };
     if (window.SplinePlace) run(); // bundle pasted inline above this script
     else {
       const s = document.createElement('script');

@@ -22,6 +22,25 @@ experience needed.
 
 Full-quality videos (1280 px, 10 s): [Budapest, crop](assets/budapest-orbit.mp4) · [Rio de Janeiro, immersive](assets/rio-orbit.mp4)
 
+## Search any place from inside the scene
+
+![The scene's panel: search a place, then size, detail, height, style, frame, slab, vitrine and shape](assets/panel.jpg)
+
+The scene carries a small panel: search a place, change its size, detail
+and height, the style and the frame (and for a crop, the depth of the slab,
+the vitrine and the shape), then Build. Copy link shares the exact place.
+Hide the panel for a clean embed.
+
+## Bake it into real, editable Spline objects
+
+Live builds exist while the scene plays. To keep the voxels, **bake** the
+place: `node scripts/bake.mjs "Budapest"` writes a handful of scripts the
+agent runs through the Spline MCP server, and the place lands in the file as
+ordinary meshes grouped under its name, one Spline material per class
+(Ground, Grass, Forest, Water, Roads, Roofs, Building Walls, Strata). Select
+a district and delete it, recolour every roof at once, add your own objects
+on top, and export it anywhere, `<spline-viewer>` and WebGL included.
+
 ## Demos
 
 Six places, each built by the skill in about half a second once the map data
@@ -43,7 +62,9 @@ had loaded, and rendered with the Spline runtime. The exact settings are in
 |---|---|---|---|
 | ![Strata](assets/budapest-strata-crop.jpg) | ![Night](assets/manhattan-night-crop.jpg) | ![Snow](assets/matterhorn-snow-crop.jpg) | ![White model](assets/venice-model-crop.jpg) |
 
-A style is a table of colours: one row of colour stops per cell type (land,
+Strata is the vivid one: sunlit sand and ochre ground, saturated greens and
+blues, terracotta roofs and bold rust strata. A style is a table of colours:
+one row of colour stops per cell type (land,
 grass, forest, farmland, sand, rock, ice, water, roads, building walls,
 roofs, trees and the strata on the cut). Copy one in
 [`scripts/builder/styles.js`](scripts/builder/styles.js) and change the
@@ -58,9 +79,10 @@ colours to make your own.
 - **Millions of voxels, smooth.** A 4 km city is 2–10M voxels, built in about
   half a second once the map data has loaded (1–2 s). It runs at hundreds of
   frames per second on a laptop.
-- **An editable Spline file, not a pile of three.js.** The pedestal and frame
-  are ordinary Spline objects; add your own text, lights and interactions,
-  then share a link, embed it or export it to code.
+- **An editable Spline file, not a pile of three.js.** Bake the place and
+  every voxel is an ordinary Spline object with a named material; or keep it
+  live and let viewers search their own place. Add your own text, lights and
+  interactions, then share a link, embed it or export it to code.
 - **Licence-clean.** Open data only (OSM under the ODbL, the Terrain Tiles),
   with the attribution shown in the scene. No Google 3D Tiles, no proprietary
   imagery.
@@ -92,14 +114,19 @@ you and press **Play**.
    height, water, road class, land cover) and meshes it into surface-only
    voxel chunks: one mesh per 64×64 columns, with voxel edges drawn by the
    shader.
+4. Or, to bake: `scripts/bake.mjs` does steps 1–3 on your machine at a
+   coarser grid, compresses each band of rows, and writes scripts that
+   decompress and mesh it inside Spline as real objects.
 
 ```
 SKILL.md      the skill: what the agent reads
 scripts/
   geo/        place → grids: geocoding, elevation, vector tiles, rasterising (no dependencies)
   builder/    grids → Spline meshes, the crop frame, and styles.js (palettes and shader)
+  bake/       the decoder and mesher a baked place's scripts carry into Spline
   cli.mjs     check a place and preview it from the terminal (Node 18+)
-  scene.html  the scene document the agent sets
+  bake.mjs    bake a place into editable Spline objects
+  scene.html  the scene document the agent sets (builder, orbit and the panel)
 examples/     the settings behind every image above
 ```
 
