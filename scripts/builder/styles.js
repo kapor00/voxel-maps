@@ -36,6 +36,85 @@ export const ROW_COUNT = 16; // texture rows; the spare one is for a future cell
 export const rowV = (name) => (ROW[name] + 0.5) / ROW_COUNT;
 const GROUND = ['land', 'grass', 'wood', 'farmland', 'sand', 'rock', 'ice', 'wetland'];
 
+// ── colour helpers: themes and the panel's one-swatch-per-class editing are built from these ──
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+function hexToHsl(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0, s = 0;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  return [h, s, l];
+}
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360; s = clamp01(s); l = clamp01(l);
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return '#' + [r, g, b].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+}
+/** hex nudged in hue (degrees), saturation and lightness (both -1..1, added). */
+export function shift(hex, dh = 0, ds = 0, dl = 0) { const [h, s2, l] = hexToHsl(hex); return hslToHex(h + dh, s2 + ds, l + dl); }
+export function mixHex(a, b, t) {
+  const A = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16)), B = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const variants = (hex, n = 3, spread = 0.06) => Array.from({ length: n }, (_, i) => shift(hex, (i - 1) * 4, 0, (i % 2 ? -1 : 1) * spread * Math.ceil(i / 2)));
+
+/**
+ * A whole style from a few key colours: { label, background, ground, high, green, forest, fields, sand,
+ * rock, snow, cliff, water: [shore, deep], road, walls: [5 + glass], roofs: [5 + glass], strata: [...],
+ * key, fill, sky, edge?, tints?, glow?, windows?, frame?, pedestal? }
+ */
+export function theme(t) {
+  const water = [t.water[0], mixHex(t.water[0], t.water[1], 0.45), mixHex(t.water[0], t.water[1], 0.75), t.water[1]];
+  return {
+    label: t.label, background: t.background, frame: t.frame || shift(t.background, 0, -0.2, 0.55), pedestal: t.pedestal || shift(t.background, 0, 0, -0.03),
+    fallback: t.ground, key: t.key || '#ffffff', fill: t.fill || '#6a6f9c', edge: t.edge ?? 0.8, sky: t.sky || '#cfe3f5',
+    steps: ['building', 'roof'], tints: t.tints || [], glow: t.glow, windows: t.windows, water: t.waterFx === false ? false : undefined,
+    rows: {
+      cut: t.strata,
+      land: [t.ground, mixHex(t.ground, t.high, 0.25), mixHex(t.ground, t.high, 0.5), mixHex(t.ground, t.high, 0.75), t.high, t.snow],
+      grass: variants(t.green), wood: variants(t.forest), farmland: variants(t.fields), sand: [t.sand, shift(t.sand, 0, 0, 0.05)],
+      rock: variants(t.rock), ice: [t.snow, '#ffffff'], wetland: variants(mixHex(t.green, t.water[0], 0.35), 2),
+      side: [t.cliff, shift(t.cliff, 0, 0, -0.08), shift(t.cliff, 0, 0, -0.17), shift(t.cliff, 0, 0, -0.27)],
+      water, road: variants(t.road, 3, 0.04), building: t.walls, roof: t.roofs, tree: variants(t.tree || t.forest, 4, 0.05),
+    },
+    flat: { ground: t.ground, side: t.cliff, water: water[1], road: t.road, building: t.walls[0], roof: t.roofs[0], tree: t.tree || t.forest, cut: t.strata.slice(0, 4) },
+  };
+}
+
+/** The colour a key swatch shows for a style, by panel key. */
+export const KEY_COLORS = {
+  ground: (st) => st.rows.land[1], green: (st) => st.rows.grass[0], water: (st) => st.rows.water[Math.min(1, st.rows.water.length - 1)],
+  roads: (st) => st.rows.road[Math.min(1, st.rows.road.length - 1)], walls: (st) => st.rows.building[0], roofs: (st) => st.rows.roof[0],
+  strata: (st) => st.rows.cut[0], background: (st) => st.background,
+};
+/** Recolour a whole class from one swatch, keeping each row's shape (ramps, variety, the glass slot). Mutates st. */
+export function recolor(st, key, hex) {
+  const R = st.rows;
+  // move every stop of a row by the hue/sat/light delta between its key colour and the new one
+  const retint = (row, from) => {
+    const [h0, s0, l0] = hexToHsl(from), [h1, s1, l1] = hexToHsl(hex);
+    R[row] = R[row].map((c, i) => (st.steps?.includes(row) && i === R[row].length - 1 ? c : shift(c, h1 - h0, s1 - s0, l1 - l0)));
+  };
+  if (key === 'ground') { const f = KEY_COLORS.ground(st), peak = R.land[R.land.length - 1]; retint('land', f); R.land[R.land.length - 1] = peak; retint('side', f); }
+  else if (key === 'green') { const f = KEY_COLORS.green(st); for (const r of ['grass', 'wood', 'farmland', 'tree', 'wetland']) retint(r, f); }
+  else if (key === 'water') retint('water', KEY_COLORS.water(st));
+  else if (key === 'roads') retint('road', KEY_COLORS.roads(st));
+  // walls and roofs are a set of distinct slots (one per building): regenerate them as variations of the new colour
+  else if (key === 'walls' || key === 'roofs') {
+    const row = key === 'walls' ? 'building' : 'roof', glass = R[row][R[row].length - 1];
+    const set = [hex, shift(hex, 8, -0.05, -0.1), shift(hex, -10, 0.04, 0.07), shift(hex, 16, 0, -0.04), shift(hex, 0, -0.3, 0.04)];
+    R[row] = st.steps?.includes(row) ? [...set, glass] : set.slice(0, R[row].length);
+  }
+  else if (key === 'strata') retint('cut', KEY_COLORS.strata(st));
+  else if (key === 'background') { st.background = hex; st.frame = shift(hex, 0, -0.2, 0.55); st.pedestal = shift(hex, 0, 0, -0.03); }
+  return st;
+}
+
 export const STYLES = {
   /** Vivid and natural: sage and olive ground, saturated greens, terracotta, slate and copper roofs over
    *  white and pastel walls, turquoise-to-deep water, rust rock strata on the cut. */
@@ -111,6 +190,48 @@ export const STYLES = {
     },
     flat: { ground: '#f4f7fb', side: '#9fb0c8', water: '#1d3550', road: '#a6aeba', building: '#c96e4a', roof: '#ffffff', tree: '#2a5a42', cut: ['#5d6a84', '#7a88a4'] },
   },
+  pastel: theme({
+    label: 'Pastel', background: '#efe9f4', ground: '#cfe3c8', high: '#f1dcc4', snow: '#ffffff', green: '#a6d8a0', forest: '#7fc28d', fields: '#e8e3a4',
+    sand: '#f7e6c4', rock: '#e0b9b0', cliff: '#e9c9d8', water: ['#bfeaf0', '#7fb6e6'], road: '#c9c4d6', key: '#ffffff', fill: '#b9b6d8', sky: '#ffffff',
+    walls: ['#ffffff', '#fde2e4', '#e2ecf9', '#fdf0d5', '#e4f4e4', '#d6e9fb'], roofs: ['#f4a6b8', '#a7c7e7', '#f9c88b', '#b9a7e3', '#a8dcc8', '#e8f4fb'],
+    strata: ['#f4c7d3', '#e5b3c9', '#d7c3ec', '#f9dccd', '#c9b6e4', '#f2b8c6'], edge: 0.86, tints: [{ color: '#f9d5e5', amount: 0.15 }],
+  }),
+  desert: theme({
+    label: 'Desert', background: '#2a1a12', ground: '#e8c48e', high: '#c98a52', snow: '#f6e7cf', green: '#9aa85a', forest: '#6f7f3d', fields: '#d8b46a',
+    sand: '#f2d49a', rock: '#c2643a', cliff: '#d29a5c', water: ['#4ec3b8', '#1f6f8c'], road: '#7a5a48', key: '#fff0d8', fill: '#8a6a7c', sky: '#f6dcc0',
+    walls: ['#f1dcc0', '#e9c79c', '#f6e6d0', '#dcb48a', '#f0d2b0', '#bfe0e6'], roofs: ['#c97a4a', '#e0a46a', '#b55e3a', '#d9b38a', '#a8805e', '#e8f2f2'],
+    strata: ['#c2643a', '#e0965a', '#a9462a', '#f0c288', '#8a3a22', '#d47a44'], tints: [{ color: '#f0c070', amount: 0.25 }, { color: '#b85a30', amount: 0.15 }],
+  }),
+  autumn: theme({
+    label: 'Autumn', background: '#1b1414', ground: '#c9b07a', high: '#9c7a52', snow: '#f4efe6', green: '#c8a43c', forest: '#b8542a', fields: '#d8a24a',
+    sand: '#ead2a0', rock: '#8e6e5a', cliff: '#a8784a', water: ['#5aa0b0', '#204a6a'], road: '#5a4c4a', key: '#ffe8c8', fill: '#6a5a7c', sky: '#e8d8c8',
+    walls: ['#f2e6d4', '#e6cfae', '#d9b896', '#cfd2d6', '#e8d8c0', '#b8d0dc'], roofs: ['#8a2e1e', '#4a4448', '#b4542e', '#6e3a2a', '#9a8a7a', '#d8e8ee'],
+    strata: ['#8a3a1a', '#c0622a', '#6a2a14', '#d89a5a', '#4a1e0e', '#a84a20'], tree: '#d0742a', tints: [{ color: '#e0a030', amount: 0.25 }, { color: '#a03a1a', amount: 0.2 }],
+  }),
+  tropical: theme({
+    label: 'Tropical', background: '#0b1f24', ground: '#b8d88a', high: '#7fae5a', snow: '#ffffff', green: '#3fc46a', forest: '#13924a', fields: '#c8e070',
+    sand: '#fbe6b0', rock: '#9a8a70', cliff: '#c9a670', water: ['#38e0d0', '#0a5aa8'], road: '#5e6270', key: '#fffbe8', fill: '#4a7a9c', sky: '#d8f4ff',
+    walls: ['#ffffff', '#ffe08a', '#ff9e8a', '#8ae0d0', '#f8c8e8', '#a8e8ff'], roofs: ['#ff6a4a', '#2a9adc', '#ffb030', '#3ac0a0', '#e85a9a', '#e0f8ff'],
+    strata: ['#c97a4a', '#e8b070', '#a8582e', '#f6d29a', '#8a4422', '#d8904e'], tints: [{ color: '#20c070', amount: 0.25 }],
+  }),
+  blueprint: theme({
+    label: 'Blueprint', background: '#0e2a52', ground: '#24508e', high: '#3a6cb0', snow: '#cfe4ff', green: '#2c5c98', forest: '#21487e', fields: '#2e5a96',
+    sand: '#3a68a6', rock: '#4a78b8', cliff: '#1a3e72', water: ['#123864', '#0a2448'], road: '#7fb2ff', key: '#d8ecff', fill: '#3a5a9c', sky: '#2a5a9c',
+    walls: ['#e8f2ff', '#cfe2ff', '#b8d4fc', '#dbe9ff', '#c4dbff', '#9cc4ff'], roofs: ['#ffffff', '#e2eeff', '#cfe2ff', '#f0f6ff', '#d8e8ff', '#bcd8ff'],
+    strata: ['#1a3e72', '#2a5290', '#123060', '#3a66a8'], edge: 0.55, glow: ['road'], waterFx: false,
+  }),
+  neon: theme({
+    label: 'Neon', background: '#05030c', ground: '#16122a', high: '#2a1e48', snow: '#e6d8ff', green: '#0e3a2e', forest: '#0a2a22', fields: '#1e1838',
+    sand: '#2a2240', rock: '#3a2a5a', cliff: '#120e24', water: ['#00f0ff', '#2a0a6a'], road: '#ff2fd0', key: '#c8b0ff', fill: '#1a1240', sky: '#ff40e0',
+    walls: ['#1a1636', '#221c44', '#2a2250', '#161230', '#1e1a3c', '#3a2a7a'], roofs: ['#00e8ff', '#ff3ad0', '#8a5aff', '#30ffb0', '#ffd23a', '#c8b0ff'],
+    strata: ['#2a1a5a', '#3a1e7a', '#1a1040', '#5a2aa0'], edge: 0.6, glow: ['road'], windows: { color: '#00e8ff', density: 0.22 },
+  }),
+  ink: theme({
+    label: 'Ink', background: '#f2efe8', ground: '#e6e2da', high: '#cfc9be', snow: '#ffffff', green: '#c9cbbf', forest: '#9a9c90', fields: '#dcd8cc',
+    sand: '#ece6d8', rock: '#a8a29a', cliff: '#bdb7ad', water: ['#3a3a3e', '#1a1a1e'], road: '#4a4a4e', key: '#ffffff', fill: '#a8a8b4', sky: '#ffffff',
+    walls: ['#f8f6f2', '#ecebe6', '#e2e0da', '#f2f0ea', '#e8e6e0', '#d8d8d8'], roofs: ['#2a2a2e', '#4a4a50', '#1a1a1e', '#6a6a70', '#3a3a3e', '#8a8a90'],
+    strata: ['#3a3a3e', '#6a6a70', '#2a2a2e', '#9a9aa0'], edge: 0.62, waterFx: false,
+  }),
 };
 
 const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -151,6 +272,7 @@ export function styleUniformValues(style) {
     windows: style.windows?.density ?? 0, windowColor: style.windows?.color || '#ffd08a',
     tints: [0, 1, 2, 3].map((i) => ({ color: t[i]?.color || '#000000', amount: t[i]?.amount ?? 0 })),
     tint: 1,
+    hue: style.hue ?? 0, sat: style.sat ?? 1, bright: style.bright ?? 1, contrast: style.contrast ?? 1, warm: style.warm ?? 0,
   };
 }
 
@@ -162,8 +284,10 @@ export function styleUniformValues(style) {
  * @param style  a STYLES entry, or your own object of the same shape
  * @param o.voxel world units per voxel · o.band strata band thickness in voxels (default 3)
  * @param o.fade  { radius, start } — immersive mode: dissolve into the background from start×radius to radius
+ * @param o.hook  (T, three, U, material) => { v, u } — replace the per-vertex row/value inputs (and set a
+ *                positionNode): how gpu-view.js builds the voxels on the GPU with this same look
  */
-export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
+export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}) {
   const T = three.tsl;
   const img = paletteImage(style);
   const tex = new three.DataTexture(img.data, img.width, img.height, three.RGBAFormat);
@@ -177,10 +301,12 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
     glow: T.uniform(v0.glow), windows: T.uniform(v0.windows), windowColor: T.uniform(col(v0.windowColor)), tint: T.uniform(v0.tint),
     fade: T.uniform(fade ? 1 : 0), fadeRadius: T.uniform(fade?.radius ?? 1), fadeStart: T.uniform(fade?.start ?? 0.55),
     tints: v0.tints.map((t) => ({ color: T.uniform(col(t.color)), amount: T.uniform(t.amount) })),
+    hue: T.uniform(v0.hue), sat: T.uniform(v0.sat), bright: T.uniform(v0.bright), contrast: T.uniform(v0.contrast), warm: T.uniform(v0.warm),
   };
 
   const m = new three.MeshBasicNodeMaterial();
-  const N = T.normalize(T.normalWorld), v = T.uv().y, Uv = T.uv().x;
+  const inp = hook ? hook(T, three, U, m) : null;
+  const N = T.normalize(T.normalWorld), v = inp?.v ?? T.uv().y, Uv = inp?.u ?? T.uv().x;
   const rowMask = (name) => T.step(ROW[name] / ROW_COUNT, v).mul(T.float(1).sub(T.step((ROW[name] + 1) / ROW_COUNT, v)));
   const hash = (x) => T.fract(T.sin(x.mul(12.9898).add(4.1414)).mul(43758.5453));
   const hash2 = (p) => T.fract(T.sin(T.dot(p, T.vec2(127.1, 311.7))).mul(43758.5453));
@@ -212,6 +338,17 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
       const n = i % 2 ? n2 : n1, w = i < 2 ? T.smoothstep(0.58, 0.8, i ? T.float(1).sub(n) : n) : T.smoothstep(0.6, 0.82, i === 3 ? T.float(1).sub(n) : n);
       c = T.mix(c, t.color, w.mul(t.amount).mul(ground));
     });
+  }
+
+  // grade: hue, saturation, warmth, brightness, contrast (live, for quick theme tweaks)
+  {
+    const k3 = T.vec3(0.57735, 0.57735, 0.57735), th = U.hue.mul(Math.PI / 180);
+    c = c.mul(T.cos(th)).add(T.cross(k3, c).mul(T.sin(th))).add(k3.mul(T.dot(k3, c)).mul(T.float(1).sub(T.cos(th))));
+    const lum = T.dot(c, T.vec3(0.299, 0.587, 0.114));
+    c = T.mix(T.vec3(lum, lum, lum), c, U.sat);
+    c = c.add(T.vec3(U.warm.mul(0.07), U.warm.mul(0.015), U.warm.mul(-0.07)));
+    c = c.sub(0.5).mul(U.contrast).add(0.5).mul(U.bright);
+    c = T.clamp(c, 0, 1);
   }
 
   let unlit = rowMask('road').mul(U.glow);
@@ -276,7 +413,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
     uniforms: U,
     /** Live tweaks: any of styleUniformValues' keys, plus voxel, band, fade { radius, start } | null. */
     set(o) {
-      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint']) if (o[k2] != null) U[k2].value = +o[k2];
+      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint', 'hue', 'sat', 'bright', 'contrast', 'warm']) if (o[k2] != null) U[k2].value = +o[k2];
       for (const k2 of ['key', 'fill', 'sky', 'background', 'windowColor']) if (o[k2]) setColor(U[k2], o[k2]);
       if (o.tints) o.tints.forEach((t, i) => { if (U.tints[i]) { setColor(U.tints[i].color, t.color); U.tints[i].amount.value = t.amount; } });
       if (o.fade !== undefined) { U.fade.value = o.fade ? 1 : 0; if (o.fade) { U.fadeRadius.value = o.fade.radius; U.fadeStart.value = o.fade.start ?? 0.55; } }

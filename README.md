@@ -27,10 +27,12 @@ Full-quality videos (1280 px, 10 s): [Budapest, crop](assets/budapest-orbit.mp4)
 ![The scene's panel, styled like Spline's sidebar: location, shape, style swatches, water, light, camera and export](assets/panel.jpg)
 
 The scene carries a panel in Spline's own sidebar style, and everything on
-it applies live. Search a place and set its size and detail; drag the
-height, slab, vitrine and shape and it rebuilds in under a second; recolour
-any class from its swatches, or tune edges, tints, waves, reflections, foam,
-sun and shade, and it changes instantly. **Save .glb** downloads exactly
+it applies live. The voxels are built on the GPU, so you can **drag the map
+inside the volume** and keep going: the next area streams in as you near the
+edge. Pick one of 17 featured places or search any other; change the
+height, slab, vitrine and shape, switch among 11 themes, recolour a class
+from one swatch, or shift hue, saturation, warmth and contrast, and it
+changes on the next frame. **Save .glb** downloads exactly
 what's on screen for the editor, **Copy link** shares the place, and **Copy
 settings** gives your agent the lines to make it the scene's default. Hide
 the panel for a clean embed.

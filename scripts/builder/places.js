@@ -1,0 +1,20 @@
+// Featured places for the scene panel: centre, ground size and a theme that suits them.
+export const PLACES = [
+  { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, style: 'strata', group: 'Cities' },
+  { name: 'Manhattan', lat: 40.7484, lon: -73.9857, sizeM: 4000, style: 'night', group: 'Cities' },
+  { name: 'Paris', lat: 48.8566, lon: 2.3415, sizeM: 4000, style: 'strata', group: 'Cities' },
+  { name: 'London', lat: 51.5045, lon: -0.1232, sizeM: 3500, style: 'ink', group: 'Cities' },
+  { name: 'Venice', lat: 45.438, lon: 12.334, sizeM: 3000, style: 'model', group: 'Cities' },
+  { name: 'San Francisco', lat: 37.7905, lon: -122.4155, sizeM: 5000, style: 'pastel', group: 'Cities' },
+  { name: 'Tokyo · Shibuya', lat: 35.6595, lon: 139.7005, sizeM: 3000, style: 'neon', group: 'Cities' },
+  { name: 'Hong Kong', lat: 22.2855, lon: 114.1577, sizeM: 5000, style: 'night', group: 'Cities' },
+  { name: 'Dubai Marina', lat: 25.0805, lon: 55.1403, sizeM: 4000, style: 'desert', group: 'Cities' },
+  { name: 'Rio de Janeiro', lat: -22.96, lon: -43.19, sizeM: 9000, style: 'tropical', group: 'Coasts' },
+  { name: 'Santorini', lat: 36.415, lon: 25.432, sizeM: 7000, style: 'pastel', group: 'Coasts' },
+  { name: 'Cape Town', lat: -33.945, lon: 18.41, sizeM: 12000, style: 'strata', group: 'Coasts' },
+  { name: 'Grand Canyon', lat: 36.0886, lon: -112.115, sizeM: 20000, style: 'desert', group: 'Landscapes' },
+  { name: 'Matterhorn', lat: 45.9763, lon: 7.6586, sizeM: 9000, style: 'snow', group: 'Landscapes' },
+  { name: 'Mount Fuji', lat: 35.3606, lon: 138.7274, sizeM: 16000, style: 'autumn', group: 'Landscapes' },
+  { name: 'Yosemite Valley', lat: 37.7415, lon: -119.5735, sizeM: 10000, style: 'autumn', group: 'Landscapes' },
+  { name: 'Monument Valley', lat: 36.99, lon: -110.1, sizeM: 14000, style: 'desert', group: 'Landscapes' },
+];

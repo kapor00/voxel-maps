@@ -29,7 +29,7 @@ const COVER_ROW = [null, 'grass', 'wood', 'farmland', 'sand', 'rock', 'ice', 'we
 const hash2 = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123; return h - Math.floor(h); };
 
 /** 0 at the shore → 1 at `reach` cells out, for every water cell (two-pass chamfer distance). */
-function waterDepth(kind, n, reach) {
+export function waterDepth(kind, n, reach) {
   const D = new Float32Array(n * n), INF = 1e9, d1 = 1, d2 = Math.SQRT2;
   for (let k = 0; k < n * n; k++) D[k] = kind[k] & 1 ? INF : 0;
   for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
@@ -150,7 +150,7 @@ export function meshColumns({ n, terr, col, u, v }, { voxel = 1.2, frame = 'crop
 }
 
 /** The crop's pedestal and wireframe: plain Spline objects, so they stay editable in the scene. */
-async function addCropFrame(spline, { width, depth = width, height, style, parent, vitrine = 1 }) {
+export async function addCropFrame(spline, { width, depth = width, height, style, parent, vitrine = 1 }) {
   const ids = [], P = parent ? { parent } : {};
   const ped = await spline.createObject('Cube', { name: 'Place Pedestal', width: width * 1.002, height: width * 0.03, depth: depth * 1.002, cornerRadius: 0, position: [0, -width * 0.015, 0], material: style.pedestal, ...P });
   if (ped?.id) ids.push(ped.id);

@@ -5,14 +5,19 @@
   <style>
     html, body { background: transparent; margin: 0; }
     #place-status { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); font: 11px/1.4 'Spline Sans', Inter, system-ui, sans-serif; color: #fff;
-      background: rgba(30, 30, 30, .9); padding: 6px 12px; border-radius: 999px; pointer-events: none; box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
+      background: rgba(30, 30, 30, .9); padding: 6px 12px; border-radius: 999px; pointer-events: none; box-shadow: 0 4px 16px rgba(0, 0, 0, .3); z-index: 5; }
     #place-status:empty { display: none; }
-    #place-attribution { position: fixed; left: 10px; bottom: 8px; font: 10px/1.3 system-ui, sans-serif; color: rgba(255, 255, 255, .7); }
+    #place-attribution { position: fixed; left: 10px; bottom: 8px; font: 10px/1.3 system-ui, sans-serif; color: rgba(255, 255, 255, .7); z-index: 2; pointer-events: none; }
+    #pt-hint { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); font: 11px/1.3 'Spline Sans', Inter, system-ui, sans-serif; color: rgba(255, 255, 255, .6);
+      background: rgba(30, 30, 30, .7); padding: 5px 10px; border-radius: 999px; pointer-events: none; z-index: 2; transition: opacity .4s; }
+    /* drag anywhere on the scene: pan the map; Alt- or right-drag: orbit; wheel: zoom */
+    #pt-drag { position: fixed; inset: 0; z-index: 1; cursor: grab; touch-action: none; }
+    #pt-drag.dragging { cursor: grabbing; }
 
     /* ── the panel: Spline's own right-sidebar look (shared/ui variables.css) ── */
     #pt { --bg: #1e1e1e; --el1: rgba(255, 255, 255, .03); --el2: rgba(255, 255, 255, .05); --el3: rgba(255, 255, 255, .09);
       --t1: rgba(255, 255, 255, .92); --t2: rgba(255, 255, 255, .7); --t3: rgba(255, 255, 255, .52); --line: rgba(255, 255, 255, .06); --blue: #2b99ff;
-      position: fixed; right: 12px; top: 12px; width: 248px; max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box;
+      position: fixed; right: 12px; top: 12px; width: 256px; max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box; z-index: 3;
       background: var(--bg); color: var(--t1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .04);
       font: 11px/1.3 'Spline Sans', Inter, system-ui, -apple-system, sans-serif; user-select: none; scrollbar-width: thin; scrollbar-color: #333 transparent; }
     #pt[hidden] { display: none; }
@@ -28,6 +33,7 @@
     #pt .sec.closed > h3::after { transform: rotate(-45deg); }
     #pt .sec .body { padding: 0 12px 10px; display: grid; gap: 4px; }
     #pt .sec.closed .body { display: none; }
+    #pt .sub { color: var(--t3); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin: 6px 0 2px; }
     #pt .row { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 8px; min-height: 26px; }
     #pt .row > span { color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #pt .ctl { display: flex; gap: 6px; align-items: center; min-width: 0; }
@@ -45,9 +51,9 @@
     #pt .seg { display: flex; background: var(--el2); border-radius: 6px; padding: 2px; gap: 2px; flex: 1; }
     #pt .seg button { all: unset; flex: 1; text-align: center; height: 20px; line-height: 20px; border-radius: 4px; color: var(--t2); cursor: pointer; white-space: nowrap; }
     #pt .seg button.on { background: var(--el3); color: var(--t1); box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
-    #pt select { all: unset; flex: 1; background: var(--el2); border-radius: 6px; height: 24px; padding: 0 22px 0 8px; color: var(--t1); cursor: pointer;
+    #pt select { all: unset; flex: 1; min-width: 0; background: var(--el2); border-radius: 6px; height: 26px; padding: 0 22px 0 8px; color: var(--t1); cursor: pointer;
       background-image: linear-gradient(45deg, transparent 50%, var(--t3) 50%), linear-gradient(135deg, var(--t3) 50%, transparent 50%);
-      background-position: calc(100% - 12px) 10px, calc(100% - 8px) 10px; background-size: 4px 4px; background-repeat: no-repeat; }
+      background-position: calc(100% - 12px) 11px, calc(100% - 8px) 11px; background-size: 4px 4px; background-repeat: no-repeat; }
     #pt .toggle { all: unset; width: 26px; height: 15px; border-radius: 8px; background: var(--el3); position: relative; cursor: pointer; transition: background .15s; }
     #pt .toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: left .15s; }
     #pt .toggle.on { background: var(--blue); }
@@ -55,10 +61,21 @@
     #pt .swatches { display: flex; gap: 3px; flex-wrap: wrap; }
     #pt .sw { position: relative; width: 18px; height: 18px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); cursor: pointer; overflow: hidden; flex: none; }
     #pt .sw input { position: absolute; inset: -6px; width: 30px; height: 30px; opacity: 0; cursor: pointer; }
+    #pt .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 4px; }
+    #pt .key { display: grid; justify-items: center; gap: 3px; color: var(--t3); font-size: 10px; }
+    #pt .key .sw { width: 100%; height: 26px; border-radius: 6px; }
+    #pt .themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    #pt .theme { all: unset; cursor: pointer; border-radius: 7px; padding: 5px; background: var(--el1); display: grid; gap: 4px; box-shadow: inset 0 0 0 1px transparent; }
+    #pt .theme:hover { background: var(--el2); }
+    #pt .theme.on { box-shadow: inset 0 0 0 1.5px var(--blue); background: var(--el2); }
+    #pt .theme .dots { display: flex; height: 16px; border-radius: 4px; overflow: hidden; }
+    #pt .theme .dots i { flex: 1; }
+    #pt .theme span { color: var(--t2); font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #pt .btn { all: unset; height: 28px; border-radius: 7px; background: var(--el2); color: var(--t1); text-align: center; cursor: pointer; flex: 1; font-weight: 500; }
     #pt .btn:hover { background: var(--el3); }
     #pt .btn.primary { background: var(--blue); color: #fff; }
     #pt .btn.primary:hover { filter: brightness(1.08); }
+    #pt .btn.small { height: 24px; flex: none; padding: 0 8px; }
     #pt .btns { display: flex; gap: 6px; }
     #pt .search .box { height: 28px; }
     #pt .search svg { flex: none; margin-right: 6px; opacity: .55; }
@@ -66,12 +83,13 @@
     #pt .results:empty { display: none; }
     #pt .results button { all: unset; cursor: pointer; padding: 6px 8px; border-radius: 6px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #pt .results button:hover { background: var(--el2); color: var(--t1); }
+    #pt .coords { color: var(--t3); font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
     #pt .muted { color: var(--t3); }
     #pt .stats { padding: 8px 12px 12px; color: var(--t3); border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
     #pt .dot { width: 6px; height: 6px; border-radius: 50%; background: #3ecf6e; display: inline-block; margin-right: 6px; vertical-align: 1px; }
     #pt .dot.busy { background: #ffb020; }
     #pt-open { position: fixed; right: 12px; top: 12px; width: 32px; height: 32px; border-radius: 9px; background: #1e1e1e; color: rgba(255, 255, 255, .8); border: 0;
-      display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
+      display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); z-index: 3; }
     #pt-open[hidden] { display: none; }
     #pt-sheet { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .45); font: 11px/1.45 'Spline Sans', Inter, system-ui, sans-serif; z-index: 10; }
     #pt-sheet[hidden] { display: none; }
@@ -87,8 +105,10 @@
   </style>
 </head>
 <body>
+  <div id="pt-drag"></div>
   <div id="place-status">Loading map data…</div>
   <div id="place-attribution"></div>
+  <div id="pt-hint">Drag to move the map · Alt-drag to orbit · Scroll to zoom</div>
   <button id="pt-open" hidden title="Show the Place to 3D panel">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h10M2 10h10"/><circle cx="5" cy="4" r="1.6" fill="#1e1e1e"/><circle cx="9" cy="10" r="1.6" fill="#1e1e1e"/></svg>
   </button>
@@ -98,9 +118,9 @@
 
   <script>
     // ── edit these ──
-    const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop' };
+    const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'strata', frame: 'crop' };
     const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
-    const SCENE = { background: '#140e20', ui: true, worldWidth: 614 }; // the file's background colour, whether to show the panel, world units across
+    const SCENE = { ui: true, backdrop: true, worldWidth: 614 }; // show the panel, a backdrop that follows the theme, world units across
     const BUNDLE = 'https://cdn.jsdelivr.net/gh/kapor00/place-to-3d@main/scripts/place-scene.bundle.js';
 
     const $ = (id) => document.getElementById(id);
@@ -112,53 +132,46 @@
       for (const k of ['style', 'frame']) if (q.get(k)) PLACE[k] = q.get(k);
     } catch {}
 
-    // ── live state: what the panel edits ──
-    let SP, look, built = null, stopOrbit = () => {};
+    // ── live state ──
+    let SP, look, view = null, orbit = null, backdrop = null;
     const S = {
       exag: PLACE.exag, trees: PLACE.trees !== false, aspect: PLACE.aspect ?? 1, vitrine: PLACE.vitrine ?? 1,
-      slab: PLACE.base ? Math.round((PLACE.base / (PLACE.n || 512)) * 100) : 6,
-      fx: {}, orbit: { on: (ORBIT.speed ?? 5) > 0, speed: ORBIT.speed || 5, dist: ORBIT.dist, pitch: ORBIT.pitch ?? 27 },
+      slab: PLACE.base ? Math.round((PLACE.base / (PLACE.n || 384)) * 100) : 6, fx: {},
     };
     const clone = (o) => JSON.parse(JSON.stringify(o));
     const setLook = (key) => { look = clone(SP.STYLES[key] || SP.STYLES.strata); S.fx = SP.styleUniformValues(look); };
+    const applyLook = () => { S.fx.background = look.background; view?.setLook(look); view?.setFx(S.fx); backdrop?.set(look.background); };
 
-    // three speeds of change: data (refetch), shape (rebuild from the cached data), look (uniforms: instant)
-    let job = Promise.resolve(), pending = null, dataDirty = true;
+    // Only the place, its size and its detail fetch data; everything else is a uniform on the live view.
+    let job = Promise.resolve(), pending = null;
     const setBusy = (b) => { const d = document.querySelector('#pt .dot'); if (d) d.classList.toggle('busy', b); };
-    const schedule = (kind) => {
-      if (kind === 'data') dataDirty = true;
-      clearTimeout(pending);
-      pending = setTimeout(() => { job = job.then(build); }, kind === 'data' ? 250 : 120);
-    };
-    async function build() {
+    const reload = () => { clearTimeout(pending); pending = setTimeout(() => { job = job.then(load); }, 250); };
+    async function load() {
       setBusy(true);
+      const t0 = performance.now();
       try {
-        const old = built, n = PLACE.n || 512;
-        const opts = {
-          ...PLACE, exag: S.exag, trees: S.trees, vitrine: S.vitrine, aspect: S.aspect, base: Math.round((n * S.slab) / 100),
-          voxel: SCENE.worldWidth / n, background: SCENE.background, look, onStatus: status,
-          raw: !dataDirty && old?.pack ? old.pack : undefined, material: old?.material,
-        };
-        stopOrbit();
-        const next = await SP.buildPlaceScene(spline, opts);
-        await SP.removePlace(spline, old); // after: the new build is up before the old one goes, so nothing flashes
-        built = next; dataDirty = false;
-        built.controls?.set(S.fx);
-        $('place-attribution').textContent = built.attribution; // required by the OSM licence
+        const old = view;
+        const next = await SP.createPlaceView(spline, {
+          lat: PLACE.lat, lon: PLACE.lon, name: PLACE.name, sizeM: PLACE.sizeM, n: PLACE.n || 384, look,
+          frame: PLACE.frame, aspect: S.aspect, exag: S.exag, slab: S.slab, trees: S.trees, vitrine: S.vitrine,
+          worldWidth: SCENE.worldWidth, onStatus: status, onCenter: showCenter,
+        });
+        await old?.dispose(); // after: the new place is up before the old one goes, so nothing flashes
+        view = next;
+        view.setFx(S.fx);
+        view.loadMs = Math.round(performance.now() - t0);
+        $('place-attribution').textContent = view.attribution; // required by the OSM licence
         status('');
-        startOrbit();
-        refreshStats();
+        aimCamera();
+        refreshStats(); showCenter(view.center());
       } catch (e) { status('Could not build the place: ' + ((e && e.message) || e)); }
       setBusy(false);
     }
-    async function startOrbit() {
-      if (!built) return;
-      stopOrbit();
-      const target = ORBIT.target || [0, Math.min(built.height * 0.35, built.extent * 0.25), 0];
-      const dist = S.orbit.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45);
-      stopOrbit = await SP.orbitCamera(spline, { ...ORBIT, dist, pitch: S.orbit.pitch, target, extent: built.extent, speed: S.orbit.on ? S.orbit.speed : 0 });
+    function aimCamera() {
+      if (!view || !orbit) return;
+      const target = ORBIT.target || [0, Math.min(view.height * 0.3, view.extent * 0.22), 0];
+      orbit.set({ extent: view.extent, target });
     }
-    const applyLook = () => built?.controls?.set(S.fx);
 
     // Spline's editor runs Play in a sandboxed frame (opaque origin, no downloads, usually no clipboard).
     // There the panel hands over text to copy by hand instead of failing silently.
@@ -180,21 +193,58 @@
       try { await navigator.clipboard.writeText(value); status(label + ' copied'); setTimeout(() => status(''), 1500); }
       catch { sheet(label, 'The clipboard is blocked here, so select it and copy by hand.', value); }
     }
-    // the colour rows the user changed from the preset, as --look JSON
     function lookDiff() {
-      const base = SP.STYLES[PLACE.style || 'strata'], rows = {};
+      const base = SP.STYLES[PLACE.style || 'strata'], d = {}, rows = {};
       for (const k of Object.keys(look.rows)) if (JSON.stringify(look.rows[k]) !== JSON.stringify(base.rows[k])) rows[k] = look.rows[k];
-      return Object.keys(rows).length ? { rows } : null;
+      if (Object.keys(rows).length) d.rows = rows;
+      if (look.background !== base.background) d.background = look.background;
+      return Object.keys(d).length ? d : null;
     }
     function glbCommand() {
-      const n = PLACE.n || 512, q = (v) => `'${String(v).replace(/'/g, "'\\''")}'`;
-      const parts = ['node scripts/export-glb.mjs', `--lat ${PLACE.lat.toFixed(5)}`, `--lon ${PLACE.lon.toFixed(5)}`, `--name ${q((PLACE.name || 'Place').split(',')[0])}`,
+      const c = view.center(), n = PLACE.n || 384, q = (v) => `'${String(v).replace(/'/g, "'\\''")}'`;
+      const parts = ['node scripts/export-glb.mjs', `--lat ${c.lat.toFixed(5)}`, `--lon ${c.lon.toFixed(5)}`, `--name ${q((PLACE.name || 'Place').split(',')[0])}`,
         `--size ${Math.round(PLACE.sizeM)}`, `--n ${n}`, `--style ${PLACE.style || 'strata'}`, `--frame ${PLACE.frame || 'crop'}`,
         `--aspect ${S.aspect}`, `--vitrine ${S.vitrine}`, `--slab ${S.slab}`];
       if (S.exag != null) parts.push(`--exag ${S.exag}`);
       const d = lookDiff(); if (d) parts.push(`--look ${q(JSON.stringify(d))}`);
       if (!S.trees) parts.push('--no-trees');
       return parts.join(' ');
+    }
+
+    // ── moving around: drag pans the map inside the volume, Alt/right-drag orbits, wheel zooms ──
+    function initControls() {
+      const pad = $('pt-drag');
+      let mode = null, x0 = 0, y0 = 0, acc = { x: 0, z: 0 };
+      const stopAuto = () => { if (orbit.state.speed) { orbit.set({ speed: 0 }); paints.forEach((p) => p.paint?.()); } };
+      const panBy = (dxPix, dyPix) => {
+        if (!view) return;
+        const th = (orbit.state.yaw * Math.PI) / 180, k = (view.n / (innerWidth * 0.75)) * orbit.state.dist;
+        // screen right = (cos, -sin) in x/z; screen up across the ground = (-sin, -cos); the map follows the pointer
+        acc.x -= (Math.cos(th) * dxPix + Math.sin(th) * dyPix) * k;
+        acc.z -= (-Math.sin(th) * dxPix + Math.cos(th) * dyPix) * k;
+        const ix = Math.trunc(acc.x), iz = Math.trunc(acc.z);
+        if (ix || iz) { view.pan(ix, iz); acc.x -= ix; acc.z -= iz; }
+      };
+      pad.addEventListener('pointerdown', (e) => {
+        mode = e.button === 2 || e.altKey || e.shiftKey ? 'orbit' : 'pan'; x0 = e.clientX; y0 = e.clientY;
+        pad.setPointerCapture(e.pointerId); pad.classList.add('dragging'); stopAuto(); $('pt-hint').style.opacity = 0;
+      });
+      pad.addEventListener('pointermove', (e) => {
+        if (!mode) return;
+        const dx = e.clientX - x0, dy = e.clientY - y0; x0 = e.clientX; y0 = e.clientY;
+        if (mode === 'pan') panBy(dx, dy);
+        else orbit.set({ yaw: orbit.state.yaw - dx * 0.3, pitch: Math.min(85, Math.max(5, orbit.state.pitch + dy * 0.25)) });
+      });
+      const end = () => { mode = null; pad.classList.remove('dragging'); paints.forEach((p) => p.paint?.()); };
+      pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
+      pad.addEventListener('contextmenu', (e) => e.preventDefault());
+      pad.addEventListener('wheel', (e) => { e.preventDefault(); orbit.set({ dist: Math.min(4, Math.max(0.25, orbit.state.dist * Math.exp(e.deltaY * 0.001))) }); }, { passive: false });
+      addEventListener('keydown', (e) => {
+        if (/input|textarea|select/i.test(document.activeElement?.tagName || '')) return;
+        const step = 40, m = { ArrowLeft: [step, 0], a: [step, 0], ArrowRight: [-step, 0], d: [-step, 0], ArrowUp: [0, step], w: [0, step], ArrowDown: [0, -step], s: [0, -step] }[e.key];
+        if (m) { stopAuto(); panBy(m[0], m[1]); e.preventDefault(); }
+      });
+      setTimeout(() => ($('pt-hint').style.opacity = 0), 6000);
     }
 
     // ── panel widgets ──
@@ -243,14 +293,13 @@
       w.append(i); paint();
       const out = row(label, w, hex); out.paint = paint; return out;
     }
-    // a palette row: the class's colour stops as swatches; editing one recolours that class live
     function paletteRow(label, rowKey) {
       const s = el('div', 'swatches');
       const paint = () => {
         s.innerHTML = '';
         (look.rows[rowKey] || []).forEach((c, i) => {
           const w = el('label', 'sw'), inp = el('input'); inp.type = 'color'; inp.value = c; w.style.background = c; w.title = c;
-          inp.addEventListener('input', () => { look.rows[rowKey][i] = inp.value; w.style.background = inp.value; built?.controls?.setStyle(look); applyLook(); });
+          inp.addEventListener('input', () => { look.rows[rowKey][i] = inp.value; w.style.background = inp.value; view?.setLook(look); view?.setFx(S.fx); repaintKeys(); });
           w.append(inp); s.append(w);
         });
       };
@@ -268,11 +317,13 @@
     const paints = [];
     const keep = (r) => (paints.push(r), r);
     const repaint = () => paints.forEach((p) => p.paint?.());
+    let repaintKeys = () => {};
     function refreshStats() {
-      const s = $('pt-stats'); if (!s || !built) return;
-      s.innerHTML = `<span id="ui-info"><i class="dot"></i>${(built.voxels / 1e6).toFixed(1)}M voxels · ${Math.round(built.cellM)} m</span><span>${((built.ms.data + built.ms.build) / 1000).toFixed(1)} s</span>`;
+      const s = $('pt-stats'); if (!s || !view) return;
+      s.innerHTML = `<span id="ui-info"><i class="dot"></i>${view.n}² voxels · ${Math.round(view.cellM)} m</span><span>${(view.loadMs / 1000).toFixed(1)} s</span>`;
       $('pt-title').textContent = (PLACE.name || 'Place').split(',')[0];
     }
+    function showCenter(c) { const e = $('pt-coords'); if (e && c) e.textContent = `${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}`; }
 
     function initPanel() {
       if (!SCENE.ui) return;
@@ -283,10 +334,21 @@
       $('pt-open').onclick = () => { P.hidden = false; $('pt-open').hidden = true; };
       top.append(hide); P.append(top);
 
-      // Location: search, then size and detail (these refetch the map data)
+      // Location: featured places, search, where the window is now; size and detail fetch new data
+      const featured = el('select'); featured.id = 'ui-place';
+      const groups = {};
+      for (const p of SP.PLACES) (groups[p.group] ||= []).push(p);
+      featured.innerHTML = '<option value="">Featured places…</option>' + Object.entries(groups).map(([g, ps]) => `<optgroup label="${g}">${ps.map((p) => `<option value="${p.name}">${p.name}</option>`).join('')}</optgroup>`).join('');
+      featured.onchange = () => {
+        const p = SP.PLACES.find((x) => x.name === featured.value); if (!p) return;
+        Object.assign(PLACE, { name: p.name, lat: p.lat, lon: p.lon, sizeM: p.sizeM });
+        S.exag = undefined;
+        if (p.style && p.style !== PLACE.style) chooseTheme(p.style);
+        repaint(); reload();
+      };
       const search = el('div', 'search');
       const sb = el('div', 'box', '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="5" cy="5" r="3.6"/><path d="M8 8l2.6 2.6"/></svg>');
-      const q = el('input', 'txt'); q.id = 'ui-search'; q.placeholder = 'Search a place…'; q.autocomplete = 'off'; sb.append(q);
+      const q = el('input', 'txt'); q.id = 'ui-search'; q.placeholder = 'Search any place…'; q.autocomplete = 'off'; sb.append(q);
       const results = el('div', 'results'); results.id = 'ui-results';
       search.append(sb, results);
       // search runs on Enter only: the geocoder is a shared service, not a search-as-you-type API
@@ -301,76 +363,103 @@
             b.onclick = () => {
               Object.assign(PLACE, { name: h.name.split(',')[0], lat: h.lat, lon: h.lon });
               if (h.extentM) PLACE.sizeM = Math.min(40000, Math.max(1000, h.extentM * 1.1));
-              S.exag = undefined; // back to the default for the new scale
-              results.innerHTML = ''; q.value = ''; repaint(); schedule('data');
+              S.exag = undefined; results.innerHTML = ''; q.value = ''; featured.value = ''; repaint(); reload();
             };
             results.append(b);
           }
         } catch (err) { results.innerHTML = `<span class="muted">Search failed: ${(err && err.message) || err}</span>`; }
       });
+      const coords = el('div', 'coords', '<span id="pt-coords">…</span>');
+      const recenter = el('button', 'btn small', 'Recenter'); recenter.title = 'Back to the place you chose';
+      recenter.onclick = () => reload();
+      coords.append(recenter);
       P.append(section('Location', [
-        search,
-        keep(slider('Size', { min: 0, max: 100, step: 1, live: false, get: () => mToSize(PLACE.sizeM || 4000), set: (v) => { PLACE.sizeM = sizeToM(v); schedule('data'); }, fmt: (v) => (sizeToM(v) / 1000).toFixed(1) + ' km' })),
-        keep(seg('Detail', [[256, '256'], [384, '384'], [512, '512'], [640, '640']], () => PLACE.n || 512, (v) => { PLACE.n = v; schedule('data'); })),
+        row('Place', featured), search, coords,
+        keep(slider('Size', { min: 0, max: 100, step: 1, live: false, get: () => mToSize(PLACE.sizeM || 4000), set: (v) => { PLACE.sizeM = sizeToM(v); reload(); }, fmt: (v) => (sizeToM(v) / 1000).toFixed(1) + ' km' })),
+        keep(seg('Detail', [[256, '256'], [384, '384'], [512, '512']], () => PLACE.n || 384, (v) => { PLACE.n = v; reload(); })),
       ]));
 
-      // Shape: rebuilds from the cached data in well under a second
-      const exagDefault = () => ((PLACE.sizeM || 4000) / (PLACE.n || 512) > 25 ? 1.6 : 1.2);
+      // Shape: all live (uniforms; the vitrine's cubes follow)
+      const exagDefault = () => ((PLACE.sizeM || 4000) / (PLACE.n || 384) > 25 ? 1.6 : 1.2);
+      const shape = (s) => view?.set(s);
       P.append(section('Shape', [
-        keep(seg('Frame', [['crop', 'Crop'], ['immersive', 'Immersive']], () => PLACE.frame || 'crop', (v) => { PLACE.frame = v; schedule('geo'); })),
-        keep(seg('Shape', [[1, '1 : 1'], [1.5, '3 : 2'], [2, '2 : 1']], () => S.aspect, (v) => { S.aspect = v; schedule('geo'); })),
-        keep(slider('Height', { min: 0.3, max: 3, step: 0.1, get: () => S.exag ?? exagDefault(), set: (v) => { S.exag = v; schedule('geo'); }, fmt: (v) => v.toFixed(1) + '×' })),
-        keep(slider('Slab', { min: 2, max: 20, step: 1, get: () => S.slab, set: (v) => { S.slab = v; schedule('geo'); }, fmt: (v) => v + '%' })),
-        keep(slider('Vitrine', { min: 0, max: 2, step: 0.05, get: () => S.vitrine, set: (v) => { S.vitrine = v; schedule('geo'); }, fmt: (v) => v.toFixed(2) })),
-        keep(toggle('Trees', () => S.trees, (v) => { S.trees = v; schedule('geo'); })),
+        keep(seg('Frame', [['crop', 'Crop'], ['immersive', 'Immersive']], () => PLACE.frame || 'crop', (v) => { PLACE.frame = v; shape({ frame: v }); orbit?.set({ dist: v === 'immersive' ? 0.6 : 1.45 }); repaint(); })),
+        keep(seg('Shape', [[1, '1 : 1'], [1.5, '3 : 2'], [2, '2 : 1']], () => S.aspect, (v) => { S.aspect = v; shape({ aspect: v }); })),
+        keep(slider('Height', { min: 0.3, max: 3, step: 0.1, get: () => S.exag ?? exagDefault(), set: (v) => { S.exag = v; shape({ exag: v }); }, fmt: (v) => v.toFixed(1) + '×' })),
+        keep(slider('Slab', { min: 2, max: 20, step: 1, get: () => S.slab, set: (v) => { S.slab = v; shape({ slab: v }); }, fmt: (v) => v + '%' })),
+        keep(slider('Vitrine', { min: 0, max: 2, step: 0.05, get: () => S.vitrine, set: (v) => { S.vitrine = v; shape({ vitrine: v }); }, fmt: (v) => v.toFixed(2) })),
+        keep(toggle('Trees', () => S.trees, (v) => { S.trees = v; shape({ trees: v }); })),
       ]));
 
-      // Style: presets and every class colour, instant
-      const preset = el('select'); preset.id = 'ui-style';
-      preset.innerHTML = Object.entries(SP.STYLES).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
-      preset.value = PLACE.style || 'strata';
-      const palRows = [['Ground', 'land'], ['Grass', 'grass'], ['Forest', 'wood'], ['Fields', 'farmland'], ['Water', 'water'], ['Roads', 'road'], ['Walls', 'building'], ['Roofs', 'roof'], ['Trees', 'tree'], ['Cliffs', 'side'], ['Strata', 'cut'], ['Rock', 'rock'], ['Sand', 'sand'], ['Snow', 'ice']];
-      preset.onchange = async () => {
-        PLACE.style = preset.value; setLook(preset.value);
-        built?.controls?.setStyle(look); applyLook();
-        repaint();
-        if (built) await SP.restyleFrame(spline, built, look);
+      // Theme: one click; then a few key colours and global adjustments
+      const themes = el('div', 'themes');
+      const dotsOf = (st) => [st.rows.land[1], st.rows.grass[0], st.rows.water[1] || st.rows.water[0], st.rows.roof[0], st.rows.cut[0]];
+      const paintThemes = () => [...themes.children].forEach((b) => b.classList.toggle('on', b.dataset.k === (PLACE.style || 'strata')));
+      for (const [k, st] of Object.entries(SP.STYLES)) {
+        const b = el('button', 'theme', `<div class="dots" style="background:${st.background}">${dotsOf(st).map((c) => `<i style="background:${c}"></i>`).join('')}</div><span>${st.label}</span>`);
+        b.dataset.k = k; b.onclick = () => chooseTheme(k);
+        themes.append(b);
+      }
+      themes.paint = paintThemes; paints.push(themes);
+      const keysBox = el('div', 'keys');
+      const KEYS = [['ground', 'Ground'], ['green', 'Greens'], ['water', 'Water'], ['roads', 'Roads'], ['walls', 'Walls'], ['roofs', 'Roofs'], ['strata', 'Strata'], ['background', 'Backdrop']];
+      repaintKeys = () => {
+        keysBox.innerHTML = '';
+        for (const [k, label] of KEYS) {
+          const wrap = el('label', 'key'), w = el('span', 'sw'), inp = el('input'); inp.type = 'color';
+          const c = SP.KEY_COLORS[k](look); inp.value = c; w.style.background = c; w.append(inp);
+          inp.addEventListener('input', () => { SP.recolor(look, k, inp.value); w.style.background = inp.value; applyLook(); paints.forEach((p) => p.isPal && p.paint()); });
+          inp.addEventListener('change', () => { if (k === 'background') view?.restyleFrame(); });
+          wrap.append(w, el('span', '', label)); keysBox.append(wrap);
+        }
       };
-      P.append(section('Style', [
-        row('Preset', preset),
-        keep(slider('Edges', { min: 0, max: 0.6, step: 0.01, get: () => 1 - S.fx.edge, set: (v) => { S.fx.edge = 1 - v; applyLook(); }, fmt: (v) => Math.round(v * 100) + '%' })),
-        keep(slider('Tints', { min: 0, max: 2, step: 0.05, get: () => S.fx.tint, set: (v) => { S.fx.tint = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
-        ...palRows.map(([l, k]) => keep(paletteRow(l, k))),
+      repaintKeys();
+      const grade = (label, key, min, max, step, fmt) => keep(slider(label, { min, max, step, get: () => S.fx[key], set: (v) => { S.fx[key] = v; view?.setFx(S.fx); }, fmt }));
+      const palRows = [['Ground', 'land'], ['Grass', 'grass'], ['Forest', 'wood'], ['Fields', 'farmland'], ['Water', 'water'], ['Roads', 'road'], ['Walls', 'building'], ['Roofs', 'roof'], ['Trees', 'tree'], ['Cliffs', 'side'], ['Strata', 'cut'], ['Rock', 'rock'], ['Sand', 'sand'], ['Snow', 'ice']];
+      const pals = palRows.map(([l, k]) => { const r = keep(paletteRow(l, k)); r.isPal = true; return r; });
+      P.append(section('Theme', [themes]));
+      P.append(section('Colors', [
+        keysBox,
+        el('div', 'sub', 'Adjust'),
+        grade('Hue', 'hue', -180, 180, 1, (v) => Math.round(v) + '°'),
+        grade('Saturation', 'sat', 0, 2, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Brightness', 'bright', 0.5, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Contrast', 'contrast', 0.5, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Warmth', 'warm', -1, 1, 0.01, (v) => (v > 0 ? '+' : '') + Math.round(v * 100)),
+        grade('Edges', 'edge', 0.4, 1, 0.01, (v) => Math.round((1 - v) * 100) + '%'),
+        grade('Tints', 'tint', 0, 2, 0.05, (v) => v.toFixed(2)),
+        (() => { const reset = el('button', 'btn small', 'Reset to theme'); reset.onclick = () => chooseTheme(PLACE.style || 'strata'); const r = row('', reset); return r; })(),
       ]));
+      P.append(section('Every colour', pals, false));
 
       P.append(section('Water', [
-        keep(toggle('Effects', () => S.fx.water > 0, (v) => { S.fx.water = v ? 1 : 0; applyLook(); })),
-        keep(slider('Waves', { min: 0, max: 3, step: 0.05, get: () => S.fx.waves, set: (v) => { S.fx.waves = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
-        keep(slider('Reflection', { min: 0, max: 2, step: 0.05, get: () => S.fx.reflect, set: (v) => { S.fx.reflect = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
-        keep(slider('Foam', { min: 0, max: 2, step: 0.05, get: () => S.fx.foam, set: (v) => { S.fx.foam = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
-        keep(slider('Glints', { min: 0, max: 3, step: 0.05, get: () => S.fx.glints, set: (v) => { S.fx.glints = v; applyLook(); }, fmt: (v) => v.toFixed(2) })),
-        keep(colorRow('Sky', () => S.fx.sky, (v) => { S.fx.sky = v; applyLook(); })),
+        keep(toggle('Effects', () => S.fx.water > 0, (v) => { S.fx.water = v ? 1 : 0; view?.setFx(S.fx); })),
+        grade('Waves', 'waves', 0, 3, 0.05, (v) => v.toFixed(2)),
+        grade('Reflection', 'reflect', 0, 2, 0.05, (v) => v.toFixed(2)),
+        grade('Foam', 'foam', 0, 2, 0.05, (v) => v.toFixed(2)),
+        grade('Glints', 'glints', 0, 3, 0.05, (v) => v.toFixed(2)),
+        keep(colorRow('Sky', () => S.fx.sky, (v) => { S.fx.sky = v; view?.setFx(S.fx); })),
       ], false));
 
       P.append(section('Light', [
-        keep(colorRow('Sun', () => S.fx.key, (v) => { S.fx.key = v; applyLook(); })),
-        keep(colorRow('Shade', () => S.fx.fill, (v) => { S.fx.fill = v; applyLook(); })),
-        keep(slider('Windows', { min: 0, max: 0.6, step: 0.01, get: () => S.fx.windows, set: (v) => { S.fx.windows = v; applyLook(); }, fmt: (v) => Math.round(v * 100) + '%' })),
-        keep(toggle('Glow roads', () => S.fx.glow > 0, (v) => { S.fx.glow = v ? 1 : 0; applyLook(); })),
+        keep(colorRow('Sun', () => S.fx.key, (v) => { S.fx.key = v; view?.setFx(S.fx); })),
+        keep(colorRow('Shade', () => S.fx.fill, (v) => { S.fx.fill = v; view?.setFx(S.fx); })),
+        grade('Windows', 'windows', 0, 0.6, 0.01, (v) => Math.round(v * 100) + '%'),
+        keep(toggle('Glow roads', () => S.fx.glow > 0, (v) => { S.fx.glow = v ? 1 : 0; view?.setFx(S.fx); })),
       ], false));
 
       P.append(section('Camera', [
-        keep(toggle('Orbit', () => S.orbit.on, (v) => { S.orbit.on = v; startOrbit(); })),
-        keep(slider('Speed', { min: 0, max: 30, step: 0.5, get: () => S.orbit.speed, set: (v) => { S.orbit.speed = v; startOrbit(); }, fmt: (v) => v + '°/s' })),
-        keep(slider('Distance', { min: 0.3, max: 3, step: 0.05, get: () => S.orbit.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45), set: (v) => { S.orbit.dist = v; startOrbit(); }, fmt: (v) => v.toFixed(2) })),
-        keep(slider('Angle', { min: 5, max: 85, step: 1, get: () => S.orbit.pitch, set: (v) => { S.orbit.pitch = v; startOrbit(); }, fmt: (v) => v + '°' })),
+        keep(toggle('Orbit', () => (orbit?.state.speed || 0) > 0, (v) => orbit?.set({ speed: v ? ORBIT.speed || 5 : 0 }))),
+        keep(slider('Speed', { min: 0, max: 30, step: 0.5, get: () => orbit?.state.speed ?? 0, set: (v) => orbit?.set({ speed: v }), fmt: (v) => v + '°/s' })),
+        keep(slider('Distance', { min: 0.25, max: 4, step: 0.05, get: () => orbit?.state.dist ?? 1.45, set: (v) => orbit?.set({ dist: v }), fmt: (v) => v.toFixed(2) })),
+        keep(slider('Angle', { min: 5, max: 85, step: 1, get: () => orbit?.state.pitch ?? 27, set: (v) => orbit?.set({ pitch: v }), fmt: (v) => Math.round(v) + '°' })),
       ], false));
 
-      // Export: the current snapshot (this exact build, these colours) as a .glb for the Spline editor
+      // Export: the current snapshot (this window, these colours) as a .glb for the Spline editor
       const glb = el('button', 'btn primary', 'Save .glb'); glb.id = 'ui-glb';
-      glb.title = 'Download this build as a .glb, then drag it into the Spline editor: real objects, one material per class';
+      glb.title = 'Download this view as a .glb, then drag it into the Spline editor: real objects, one material per class';
       glb.onclick = () => {
-        if (!built) return;
+        if (!view) return;
         if (SANDBOXED) {
           sheet('Downloads are blocked in the Play preview',
             "Spline's editor runs Play in a sandbox that can't save files. Open this scene's Public URL and press Save .glb there, or give your agent this command: it rebuilds exactly this snapshot, colours included.",
@@ -380,9 +469,9 @@
         status('Writing .glb…');
         setTimeout(() => { // let the status paint first: a 512 city takes a second
           try {
-            const name = (PLACE.name || 'Place').split(',')[0];
-            const { glb: bytes } = SP.placeToGLB(built.glb.cols, look, { ...built.glb, name });
-            const file = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.glb';
+            const snap = view.snapshot();
+            const { glb: bytes } = SP.placeToGLB(snap.cols, look, snap);
+            const file = snap.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.glb';
             const url = URL.createObjectURL(new Blob([bytes], { type: 'model/gltf-binary' }));
             const a = el('a'); a.href = url; a.download = file; document.body.append(a); a.click(); a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -392,27 +481,38 @@
       };
       const link = el('button', 'btn', 'Copy link'); link.id = 'ui-share';
       link.onclick = async () => {
-        const u = new URL(location.href);
-        u.searchParams.set('place', [PLACE.lat.toFixed(5), PLACE.lon.toFixed(5), (PLACE.sizeM / 1000).toFixed(1)].join(','));
+        const c = view ? view.center() : PLACE, u = new URL(location.href);
+        u.searchParams.set('place', [c.lat.toFixed(5), c.lon.toFixed(5), (PLACE.sizeM / 1000).toFixed(1)].join(','));
         u.searchParams.set('name', PLACE.name); u.searchParams.set('style', PLACE.style); u.searchParams.set('frame', PLACE.frame || 'crop');
         await copyText(u.toString(), 'Link');
       };
       const cfg = el('button', 'btn', 'Copy settings');
       cfg.title = 'The PLACE and ORBIT lines for this scene, to paste into its HTML (or hand to your agent)';
       cfg.onclick = async () => {
-        const n = PLACE.n || 512;
-        const placeLine = { name: PLACE.name, lat: +PLACE.lat.toFixed(5), lon: +PLACE.lon.toFixed(5), sizeM: Math.round(PLACE.sizeM), n, style: PLACE.style, frame: PLACE.frame || 'crop', exag: S.exag, aspect: S.aspect, vitrine: S.vitrine, base: Math.round((n * S.slab) / 100), trees: S.trees };
-        const orbitLine = { ...ORBIT, dist: S.orbit.dist, pitch: S.orbit.pitch, speed: S.orbit.on ? S.orbit.speed : 0 };
-        const text = `const PLACE = ${JSON.stringify(placeLine)};\nconst ORBIT = ${JSON.stringify(orbitLine)};`;
-        await copyText(text, 'Settings');
+        const c = view ? view.center() : PLACE, n = PLACE.n || 384;
+        const placeLine = { name: PLACE.name, lat: +c.lat.toFixed(5), lon: +c.lon.toFixed(5), sizeM: Math.round(PLACE.sizeM), n, style: PLACE.style, frame: PLACE.frame || 'crop', exag: S.exag, aspect: S.aspect, vitrine: S.vitrine, base: Math.round((n * S.slab) / 100), trees: S.trees };
+        const orbitLine = { ...ORBIT, dist: +orbit.state.dist.toFixed(2), pitch: Math.round(orbit.state.pitch), yaw: Math.round(orbit.state.yaw % 360), speed: orbit.state.speed };
+        await copyText(`const PLACE = ${JSON.stringify(placeLine)};\nconst ORBIT = ${JSON.stringify(orbitLine)};`, 'Settings');
       };
       const b1 = el('div', 'btns'), b2 = el('div', 'btns'); b1.append(glb); b2.append(link, cfg);
       P.append(section('Export', [b1, b2]));
       const st = el('div', 'stats', '<span><i class="dot busy"></i>Loading…</span>'); st.id = 'pt-stats'; P.append(st);
       $('pt-title').textContent = (PLACE.name || 'Place').split(',')[0];
     }
+    async function chooseTheme(k) {
+      PLACE.style = k; setLook(k); applyLook();
+      repaint(); repaintKeys();
+      await view?.restyleFrame();
+    }
 
-    const run = () => { SP = window.SplinePlace; setLook(PLACE.style || 'strata'); initPanel(); job = job.then(build); };
+    async function run() {
+      SP = window.SplinePlace; setLook(PLACE.style || 'strata');
+      await spline.ready;
+      if (SCENE.backdrop) backdrop = await SP.createBackdrop(spline, look.background);
+      orbit = await SP.createOrbit(spline, { ...ORBIT, extent: SCENE.worldWidth, dist: ORBIT.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45) });
+      initPanel(); initControls();
+      job = job.then(load);
+    }
     // the builder: already on the page (pasted inline above this script), or from the CDN (BUNDLE)
     async function loadBuilder() {
       if (window.SplinePlace) return;

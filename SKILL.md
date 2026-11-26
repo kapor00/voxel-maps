@@ -105,8 +105,10 @@ position({ x: 0, y: 600, z: 1200 });
 rotation({ x: -27 });
 setPlayCamera(cam);
 playControls('none'); // the scene script orbits it
-background('#140e20'); // the style's background
 ```
+
+The scene paints its own backdrop in the theme's colours, so the file's
+background colour doesn't matter.
 
 ## 4. Add the builder
 
@@ -114,9 +116,9 @@ Call `3d_set_html_content` with [`scripts/scene.html`](scripts/scene.html),
 editing only the `PLACE`, `ORBIT` and `SCENE` lines:
 
 ```js
-const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 512, style: 'strata', frame: 'crop' };
+const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'strata', frame: 'crop' };
 const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
-const SCENE = { background: '#140e20', ui: true, worldWidth: 614 };
+const SCENE = { ui: true, backdrop: true, worldWidth: 614 };
 ```
 
 `PLACE` options beyond the ones in step 1 and 2 (all optional):
@@ -134,23 +136,37 @@ const SCENE = { background: '#140e20', ui: true, worldWidth: 614 };
 above the ground, higher for tall places). Crop: `dist` 1.4–2.0, `pitch`
 20–30. Immersive: `dist` 0.55–0.7, `pitch` 22–28.
 
-`SCENE`: `background` is the colour you gave the scene in step 3 (scripts
-can't read it, and the immersive edge fades into it); `ui: false` hides the
-panel (for a clean published embed); `worldWidth` is the place's width in
-world units, whatever `n` is, so the camera and lights you set keep working
-when the viewer changes the detail.
+`style` is one of `strata`, `model`, `night`, `snow`, `pastel`, `desert`,
+`autumn`, `tropical`, `blueprint`, `neon`, `ink`. `n` is 256, 384 (default)
+or 512 cells across the window.
+
+`SCENE`: `ui: false` hides the panel (for a clean published embed);
+`backdrop: false` drops the themed backdrop (then the file's own background
+shows); `worldWidth` is the place's width in world units, whatever `n` is.
+
+**How it renders.** The voxels are built on the GPU: the map data for an
+area twice the window sits in two textures, and one fixed mesh holds a box
+per column whose height and colour the shader reads. So the viewer can drag
+the map inside the volume and change the shape and look in real time; when
+the window nears the edge of the data, the next area streams in.
+
+**Moving around.** Drag the scene to move the map inside the volume (it
+streams more as you go), Alt- or right-drag to orbit, scroll to zoom, arrow
+keys or WASD to step. Recenter (in Location) goes back to the chosen place.
 
 **The panel.** With `ui: true` the scene shows a panel styled like Spline's
 own sidebar, and every control applies live, with no Build button:
 
-- Location: search (Enter; it geocodes once per search, never per
-  keystroke), Size, Detail (`n`). These fetch new map data (1–2 s).
-- Shape: Frame, Shape (aspect), Height (`exag`), Slab, Vitrine, Trees. These
-  rebuild from the data already loaded (under a second for a 512 city).
-- Style, Water, Light, Camera: preset, edge strength, regional tints, every
-  class's colour stops (click a swatch), waves, reflection, foam, glints, sky,
-  sun and shade colours, lit windows, glowing roads, orbit speed, distance
-  and angle. These are shader uniforms and the palette texture: instant.
+- Location: featured places (17 cities, coasts and landscapes, each with a
+  theme that suits it), search (Enter; it geocodes once per search, never per
+  keystroke), the window's centre, Size, Detail. Only these fetch new data.
+- Shape: Frame, Shape (aspect), Height, Slab, Vitrine, Trees: instant.
+- Theme: one click among 11. Colors: eight key swatches (ground, greens,
+  water, roads, walls, roofs, strata, backdrop; each recolours its whole
+  class, variants included) and hue, saturation, brightness, contrast,
+  warmth, edges and tints. "Every colour" has each class's full palette.
+- Water, Light, Camera: waves, reflection, foam, glints, sky, sun and shade,
+  lit windows, glowing roads, orbit speed, distance and angle.
 - Export: Save .glb (exactly what's on screen, with the edited colours),
   Copy link (`?place=lat,lon,km&style=&frame=`, which the scene reads on
   load), Copy settings (the PLACE and ORBIT lines for this look: ask the user
@@ -164,7 +180,7 @@ own sidebar, and every control applies live, with no Build button:
   .glb. The Public URL has no such sandbox.
 
 **Inline the builder.** Paste the contents of
-`scripts/place-scene.bundle.js` (38 KB) into a `<script>` just above the
+`scripts/place-scene.bundle.js` (57 KB) into a `<script>` just above the
 template's script; the loader uses it when it's there. The template's
 `BUNDLE` URL (jsDelivr) only works once this repository is public.
 
