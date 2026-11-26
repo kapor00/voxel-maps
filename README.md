@@ -7,7 +7,7 @@ real terrain, real building heights, parks, forests, roads and rivers, in a
 scene you can keep editing, style and publish to the web. No 3D design
 experience needed.
 
-![Budapest as a voxel specimen block, built by an agent in Spline](assets/budapest-strata-crop.jpg)
+![Budapest as a voxel specimen block, orbiting, built by an agent in Spline](assets/budapest-orbit.gif)
 
 > "Make a 3D map of downtown Budapest."
 > "Turn my hometown into a voxel diorama, night style."
@@ -17,10 +17,25 @@ experience needed.
 
 | Crop | Immersive |
 |---|---|
-| ![Grand Canyon as a crop](assets/grand-canyon-strata-crop.jpg) | ![Rio de Janeiro, immersive](assets/rio-strata-immersive.jpg) |
+| ![Budapest as a crop](assets/budapest-orbit.gif) | ![Rio de Janeiro, immersive](assets/rio-orbit.gif) |
 | A block cut out of the world: strata on the cut, a pedestal underneath and a wireframe vitrine around it. | No walls: the ground dissolves into the background toward the edges, so the place reads as part of an endless world. |
 
-Orbit videos: [Budapest (crop)](assets/budapest-orbit.mp4) · [Rio de Janeiro (immersive)](assets/rio-orbit.mp4)
+Full-quality videos (1280 px, 10 s): [Budapest, crop](assets/budapest-orbit.mp4) · [Rio de Janeiro, immersive](assets/rio-orbit.mp4)
+
+## Demos
+
+Six places, each built by the skill in about half a second once the map data
+had loaded, and rendered with the Spline runtime. The exact settings are in
+[`examples/demos.json`](examples/demos.json).
+
+| | |
+|---|---|
+| ![Budapest, strata, crop](assets/budapest-strata-crop.jpg) | ![Manhattan, night, crop](assets/manhattan-night-crop.jpg) |
+| **Budapest** · 4 km · strata · crop · 9.6M voxels, 5,000 trees | **Manhattan** · 4 km · night · crop · 9.2M voxels |
+| ![Grand Canyon, strata, crop](assets/grand-canyon-strata-crop.jpg) | ![Matterhorn, snow, crop](assets/matterhorn-snow-crop.jpg) |
+| **Grand Canyon** · 20 km · strata · crop · 17.3M voxels | **Matterhorn** · 9 km · snow · crop · 23M voxels |
+| ![Rio de Janeiro, strata, immersive](assets/rio-strata-immersive.jpg) | ![Venice, white model, crop](assets/venice-model-crop.jpg) |
+| **Rio de Janeiro** · 9 km · strata · immersive | **Venice** · 3 km · white model · crop · 8.4M voxels |
 
 ## Styles
 
