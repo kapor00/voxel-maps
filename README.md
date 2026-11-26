@@ -28,18 +28,22 @@ Full-quality videos (1280 px, 10 s): [Budapest, crop](assets/budapest-orbit.mp4)
 
 The scene carries a small panel: search a place, change its size, detail
 and height, the style and the frame (and for a crop, the depth of the slab,
-the vitrine and the shape), then Build. Copy link shares the exact place.
-Hide the panel for a clean embed.
+the vitrine and the shape), then Build. Copy link shares the exact place;
+Save .glb downloads it for the editor. Hide the panel for a clean embed.
 
-## Bake it into real, editable Spline objects
+## Real, editable objects in the Spline editor
 
-Live builds exist while the scene plays. To keep the voxels, **bake** the
-place: `node scripts/bake.mjs "Budapest"` writes a handful of scripts the
-agent runs through the Spline MCP server, and the place lands in the file as
-ordinary meshes grouped under its name, one Spline material per class
-(Ground, Grass, Forest, Water, Roads, Roofs, Building Walls, Strata). Select
-a district and delete it, recolour every roof at once, add your own objects
-on top, and export it anywhere, `<spline-viewer>` and WebGL included.
+Press **Save .glb for the editor** in the panel (or run
+`node scripts/export-glb.mjs "Budapest"`) and drag the file into Spline. The
+place arrives at full detail as ordinary objects grouped under its name, one
+material per class: "Roofs · Terracotta", "Roofs · Slate", "Walls · White",
+"Water · Deep", "Strata 2" and so on. Recolour every terracotta roof in one
+edit, delete a district, add your own objects on top, and publish it
+anywhere, `<spline-viewer>` and WebGL included. Per-voxel shading and water
+depth come along as vertex colours.
+
+No file to hand over? An agent can also **bake** the place straight into the
+file through the Spline MCP server (`scripts/bake.mjs`), at a coarser grid.
 
 ## Demos
 
@@ -62,8 +66,10 @@ had loaded, and rendered with the Spline runtime. The exact settings are in
 |---|---|---|---|
 | ![Strata](assets/budapest-strata-crop.jpg) | ![Night](assets/manhattan-night-crop.jpg) | ![Snow](assets/matterhorn-snow-crop.jpg) | ![White model](assets/venice-model-crop.jpg) |
 
-Strata is the vivid one: sunlit sand and ochre ground, saturated greens and
-blues, terracotta roofs and bold rust strata. A style is a table of colours:
+Strata is the vivid one: sage ground and saturated greens, terracotta,
+slate and copper roofs over white and pastel walls, rust rock strata, and
+water that runs from turquoise at the bank to deep blue, with moving waves,
+sky reflections, sun glints and foam along the shore. A style is a table of colours:
 one row of colour stops per cell type (land,
 grass, forest, farmland, sand, rock, ice, water, roads, building walls,
 roofs, trees and the strata on the cut). Copy one in
@@ -123,9 +129,11 @@ SKILL.md      the skill: what the agent reads
 scripts/
   geo/        place → grids: geocoding, elevation, vector tiles, rasterising (no dependencies)
   builder/    grids → Spline meshes, the crop frame, and styles.js (palettes and shader)
+  builder/glb.js  a place → .glb: one object per material, vertex-coloured shading
   bake/       the decoder and mesher a baked place's scripts carry into Spline
   cli.mjs     check a place and preview it from the terminal (Node 18+)
-  bake.mjs    bake a place into editable Spline objects
+  export-glb.mjs  export a place as a .glb for the Spline editor
+  bake.mjs    bake a place into editable Spline objects over the MCP
   scene.html  the scene document the agent sets (builder, orbit and the panel)
 examples/     the settings behind every image above
 ```

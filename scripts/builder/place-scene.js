@@ -19,6 +19,7 @@
                 edges, so the place reads as part of an endless world */
 
 import { buildPlace, decodePlace } from '../geo/place.js';
+import { placeToGLB } from './glb.js';
 import { STYLES, rowV, voxelMaterial } from './styles.js';
 
 export { STYLES };
@@ -27,6 +28,29 @@ export { STYLES };
 const COVER_ROW = [null, 'grass', 'wood', 'farmland', 'sand', 'rock', 'ice', 'wetland'];
 const hash2 = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123; return h - Math.floor(h); };
 
+/** 0 at the shore → 1 at `reach` cells out, for every water cell (two-pass chamfer distance). */
+function waterDepth(kind, n, reach) {
+  const D = new Float32Array(n * n), INF = 1e9, d1 = 1, d2 = Math.SQRT2;
+  for (let k = 0; k < n * n; k++) D[k] = kind[k] & 1 ? INF : 0;
+  for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
+    const k = z * n + x; if (!D[k]) continue;
+    let d = D[k];
+    if (x > 0) d = Math.min(d, D[k - 1] + d1);
+    if (z > 0) { d = Math.min(d, D[k - n] + d1); if (x > 0) d = Math.min(d, D[k - n - 1] + d2); if (x < n - 1) d = Math.min(d, D[k - n + 1] + d2); }
+    D[k] = d;
+  }
+  for (let z = n - 1; z >= 0; z--) for (let x = n - 1; x >= 0; x--) {
+    const k = z * n + x; if (!D[k]) continue;
+    let d = D[k];
+    if (x < n - 1) d = Math.min(d, D[k + 1] + d1);
+    if (z < n - 1) { d = Math.min(d, D[k + n] + d1); if (x < n - 1) d = Math.min(d, D[k + n + 1] + d2); if (x > 0) d = Math.min(d, D[k + n - 1] + d2); }
+    D[k] = d;
+  }
+  // a frame that is all water (open sea) has no shore: call it deep
+  for (let k = 0; k < n * n; k++) D[k] = D[k] >= INF ? 1 : Math.min(1, (D[k] - 0.5) / reach);
+  return D;
+}
+
 /**
  * Column heights (in voxels) and per-cell palette coordinates from a place pack.
  * @param o.exag vertical exaggeration (default 1.2 for cities, 1.6 for landscapes)
@@ -34,7 +58,8 @@ const hash2 = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
  * @param o.base voxels of ground under the lowest point (the depth of the crop's strata), default 2
  */
 export function placeColumns(pack, { exag, trees = true, base: baseVox } = {}) {
-  const { n, cell } = pack.meta, N = n * n, { height, bld, kind } = pack;
+  const { n, cell } = pack.meta, N = n * n, { height, bld, kind, bid } = pack;
+  const depth = waterDepth(kind, n, Math.max(4, n * 0.03));
   const ex = exag ?? (cell > 25 ? 1.6 : 1.2);
   let hmin = Infinity, hmax = -Infinity;
   for (let k = 0; k < N; k++) { if (height[k] < hmin) hmin = height[k]; if (height[k] > hmax) hmax = height[k]; }
@@ -50,9 +75,13 @@ export function placeColumns(pack, { exag, trees = true, base: baseVox } = {}) {
     const x = k % n, z = (k / n) | 0;
     if (bld[k] > 0) {
       col[k] = t + Math.max(1, Math.round((bld[k] / cell) * ex));
-      u[k] = Math.min(1, bld[k] / 120); v[k] = rowV('building');
+      // one colour per building: its id picks a palette slot; towers (60 m+) take the last slot (glass)
+      u[k] = bld[k] >= 60 ? 0.86 + 0.14 * Math.min(1, (bld[k] - 60) / 140) : ((bid?.[k] || hash2(Math.round(bld[k] * 10), 7) * 255) / 256) * 0.83;
+      v[k] = rowV('building');
     } else if (water) {
-      col[k] = t; u[k] = hash2(x, z) * 0.3; v[k] = rowV('water');
+      // the surface sits a voxel below its banks, so rivers and shores read as cut into the land
+      if (t > 1) terr[k] = t - 1;
+      col[k] = terr[k]; u[k] = depth[k]; v[k] = rowV('water');
     } else if (road) {
       col[k] = t; u[k] = road / 10; v[k] = rowV('road');
     } else if (trees && treeH && (cover === 'wood' ? hash2(x, z) < 0.55 : cover === 'grass' ? hash2(x, z) < 0.12 : false)) {
@@ -186,6 +215,8 @@ export async function buildPlaceScene(spline, o = {}) {
   say('');
   return {
     name: pack.meta.name, attribution: pack.meta.attribution, labels: pack.labels, background: style.background,
+    // what toGLB() needs to save this exact build as a .glb
+    glb: { cols, style, voxel, frame, aspect: frame === 'crop' ? o.aspect ?? 1 : 1, band: Math.max(2, Math.round(base / 5)), vitrine: o.vitrine ?? 1 },
     n: cols.n, cellM: pack.meta.cell, voxels, trees: cols.trees, meshes: meshes.length, ids, groupId: group?.id, extent: width, depth, height, frame, lat: pack.meta.lat, lon: pack.meta.lon,
     ms: { data: Math.round(tData - t0), build: Math.round(performance.now() - tData) },
   };
@@ -220,4 +251,10 @@ export async function orbitCamera(spline, { camera = 'Camera', extent = 600, dis
   };
   requestAnimationFrame(tick);
   return () => { run = false; };
+}
+
+/** The place buildPlaceScene just built, as .glb bytes for the Spline editor (see glb.js). */
+export function placeGLB(result) {
+  const g = result.glb;
+  return placeToGLB(g.cols, g.style, { voxel: g.voxel, frame: g.frame, aspect: g.aspect, band: g.band, vitrine: g.vitrine, name: result.name.split(',')[0] });
 }

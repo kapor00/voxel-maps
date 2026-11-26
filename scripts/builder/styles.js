@@ -10,7 +10,8 @@
      cut       strata on the crop's cut faces
      land grass wood farmland sand rock ice wetland   ground tops, by cover
      side      ground column walls (terraces, cliffs), by height
-     water road
+     water     by depth: shore → open water (distance from the bank)
+     road
      building  walls · roof  building tops · tree
    Options:
      background   page colour for the scene (also what the immersive edge fades into)
@@ -20,6 +21,10 @@
      tints        [{ color, amount }] regional colour patches on open ground
      glow         rows drawn unlit, e.g. ['road'] for a night city
      windows      { color, density } lit windows on building walls (unlit, like glow)
+     steps        rows that pick one stop instead of blending, e.g. ['building', 'roof']: each
+                  building takes one slot (its id picks it; towers take the last), so walls and
+                  roofs come in a few distinct colours rather than a blur
+     sky          what water reflects at grazing angles; water: false turns the water effects off
      fallback     flat colour where custom shaders can't run (WebGL2, <spline-viewer>)
      flat         { ground, water, road, building, roof, tree, cut } plain colours for baked
                   (editable) scenes, which use Spline materials instead of this shader */
@@ -32,37 +37,41 @@ export const rowV = (name) => (ROW[name] + 0.5) / ROW_COUNT;
 const GROUND = ['land', 'grass', 'wood', 'farmland', 'sand', 'rock', 'ice', 'wetland'];
 
 export const STYLES = {
-  /** Warm and vivid: sand-gold ground over brown columns, rusty rock strata, lush greens, bright water. */
+  /** Vivid and natural: sage and olive ground, saturated greens, terracotta, slate and copper roofs over
+   *  white and pastel walls, turquoise-to-deep water, rust rock strata on the cut. */
   strata: {
     label: 'Strata',
-    background: '#140e20', frame: '#b0a4c4', pedestal: '#120c1e', fallback: '#d6b57c',
-    key: '#fff1dc', fill: '#6a6f9c', edge: 0.78,
-    tints: [{ color: '#ffd98a', amount: 0.35 }, { color: '#c0502a', amount: 0.25 }, { color: '#9a8434', amount: 0.25 }, { color: '#c06060', amount: 0.15 }],
+    background: '#140e20', frame: '#b0a4c4', pedestal: '#120c1e', fallback: '#b4b98a',
+    key: '#fff6ea', fill: '#66709e', edge: 0.78, sky: '#cfe3f5',
+    steps: ['building', 'roof'],
+    tints: [{ color: '#7fb04a', amount: 0.22 }, { color: '#c0502a', amount: 0.12 }, { color: '#9fb6a0', amount: 0.15 }, { color: '#c06060', amount: 0.06 }],
     rows: {
       cut: ['#b44b22', '#8e3318', '#c9663a', '#742814', '#d8a06a', '#a03c1c', '#62200f', '#e0b880'],
-      land: ['#d9dfb2', '#efe0a6', '#f5dc94', '#e6c176', '#c98a4e', '#f2e6c8'],
-      grass: ['#7fb245', '#6a9c3a', '#8cb852'],
-      wood: ['#3d7a2e', '#4a8a34', '#2f6a28'],
-      farmland: ['#d8cf72', '#c9c062', '#e2d888'],
-      sand: ['#f5e2a8', '#f8eab8'],
-      rock: ['#c9663a', '#a05a3c', '#d8a06a'],
+      land: ['#a7bf8c', '#b1bd86', '#bab47e', '#b89a68', '#9f7a56', '#ece6da'],
+      grass: ['#6cb43e', '#5aa236', '#84c34c'],
+      wood: ['#2f7a34', '#3d8b3a', '#256a2c'],
+      farmland: ['#c6cf68', '#b2c259', '#dbd689'],
+      sand: ['#f0dc9e', '#f6e7b6'],
+      rock: ['#b8714f', '#9a6a55', '#c9a07a'],
       ice: ['#eef4f8', '#ffffff'],
-      wetland: ['#6f9a5a', '#7eaa66'],
-      side: ['#d6b57c', '#b98c52', '#8a5a2e', '#5a3418'],
-      water: ['#1f86c9', '#36a3e0'],
-      road: ['#5a5560', '#6a6470', '#7a7480'],
-      building: ['#f3dfb8', '#eed9b4', '#d4c9b2', '#cfe0ec'],
-      roof: ['#c79a76', '#b38a6a', '#a09486', '#dcebf4'],
+      wetland: ['#5f9a6e', '#72aa7c'],
+      side: ['#c4a06c', '#a27648', '#7a5030', '#53321c'],
+      water: ['#3fc0c4', '#269ad0', '#176cb2', '#0e4685'],
+      road: ['#55555f', '#626270', '#727280'],
+      // one slot per building: white, cream, peach, cool grey, sage · glass towers
+      building: ['#f5f2eb', '#ecd8bb', '#f1c6a2', '#d6dce4', '#cddcc2', '#a9cde4'],
+      // terracotta, slate, brick, copper green, grey · glass
+      roof: ['#c55a3b', '#4f5768', '#a8462e', '#5fa592', '#8e939d', '#d6ebf6'],
       tree: ['#3f8a30', '#4f9a38', '#5fae3e', '#78bf48'],
     },
-    flat: { ground: '#e6c88a', side: '#b98c52', water: '#2a8fd0', road: '#6a6470', building: '#efdcb8', roof: '#9a6e50', tree: '#4f9a38', cut: ['#b44b22', '#c9663a', '#8e3318', '#d8a06a'] },
+    flat: { ground: '#b4c47c', side: '#a27648', water: '#2490cc', road: '#626270', building: '#ece2d2', roof: '#b4553a', tree: '#4f9a38', cut: ['#b44b22', '#c9663a', '#8e3318', '#d8a06a'] },
   },
 
   /** An architect's white model: one warm white, water a pale grey-blue, roads cut slightly darker. */
   model: {
     label: 'White model',
     background: '#d9d6cf', frame: '#8f8a80', pedestal: '#bdb8ae', fallback: '#ece8e1',
-    key: '#ffffff', fill: '#b8bcc6', edge: 0.9,
+    key: '#ffffff', fill: '#b8bcc6', edge: 0.9, water: false,
     rows: {
       cut: ['#d8d3ca', '#cbc6bc', '#e2ddd4', '#c2bdb3'],
       land: ['#eeebe4', '#f3f0ea'], grass: ['#e6e8df'], wood: ['#dfe3d8'], farmland: ['#ebe8df'],
@@ -77,12 +86,12 @@ export const STYLES = {
   night: {
     label: 'Night',
     background: '#07080d', frame: '#5e6a8a', pedestal: '#05060a', fallback: '#1d1f2a',
-    key: '#9fb2ff', fill: '#2a2f4a', edge: 0.75, glow: ['road'], windows: { color: '#ffd08a', density: 0.28 },
+    key: '#9fb2ff', fill: '#2a2f4a', edge: 0.75, sky: '#3a4a78', glow: ['road'], windows: { color: '#ffd08a', density: 0.28 },
     rows: {
       cut: ['#1b2238', '#24304e', '#151b2c', '#2e3a5c'],
       land: ['#161a24', '#1d2230', '#2a3040'], grass: ['#13201a', '#18281f'], wood: ['#0f1a13', '#132017'],
       farmland: ['#1a1a20'], sand: ['#24211e'], rock: ['#22252e'], ice: ['#303a4c'], wetland: ['#121a1e'], side: ['#141824', '#10131c'],
-      water: ['#0d1a2e', '#14253f'], road: ['#c9782f', '#ffb25a', '#ffd08f'],
+      water: ['#1b3150', '#11223a', '#0a1526'], road: ['#c9782f', '#ffb25a', '#ffd08f'],
       building: ['#171c2a', '#1d2335', '#242c42'], roof: ['#12151e', '#181c29'], tree: ['#0c160f', '#101c13'],
     },
     flat: { ground: '#1a1e2a', side: '#141824', water: '#0f1d33', road: '#ffb25a', building: '#1d2335', roof: '#141824', tree: '#0f1a12', cut: ['#1b2238', '#24304e'] },
@@ -92,12 +101,12 @@ export const STYLES = {
   snow: {
     label: 'Snow',
     background: '#c3d2e4', frame: '#6c7e98', pedestal: '#8e9cb2', fallback: '#eef2f6',
-    key: '#fff6ea', fill: '#7d93c4', edge: 0.8, windows: { color: '#ffcf7a', density: 0.1 },
+    key: '#fff6ea', fill: '#7d93c4', edge: 0.8, sky: '#e4ecf6', windows: { color: '#ffcf7a', density: 0.1 },
     rows: {
       cut: ['#5d6a84', '#7a88a4', '#4c5872', '#97a4bf'],
       land: ['#f4f7fb', '#ffffff'], grass: ['#eef3f8'], wood: ['#2f5a46', '#3d6c55'], farmland: ['#f6f8fb'],
       sand: ['#eef1f4'], rock: ['#56606e', '#727d8c', '#8a95a4'], ice: ['#e6f2ff', '#ffffff'], wetland: ['#e6eef4'], side: ['#dde6f2', '#c7d3e6', '#a9b8d0'],
-      water: ['#1d3550', '#284766'], road: ['#9aa3b0', '#b4bcc6'],
+      water: ['#3a6f8c', '#244a68', '#16304a'], road: ['#9aa3b0', '#b4bcc6'],
       building: ['#c96e4a', '#d89a6a', '#b85c3c'], roof: ['#ffffff', '#f6f9fb'], tree: ['#24503c', '#2f6048', '#f4f7f9'],
     },
     flat: { ground: '#f4f7fb', side: '#9fb0c8', water: '#1d3550', road: '#a6aeba', building: '#c96e4a', roof: '#ffffff', tree: '#2a5a42', cut: ['#5d6a84', '#7a88a4'] },
@@ -112,7 +121,13 @@ export function paletteImage(style, width = 64) {
   const data = new Uint8Array(width * ROW_COUNT * 4);
   ROWS.forEach((name, r) => {
     const stops = (style.rows[name] || style.rows.land).map(hexRGB);
+    const step = style.steps?.includes(name);
     for (let x = 0; x < width; x++) {
+      if (step) { // nearest slot, no blending between neighbours
+        const a = stops[Math.min(stops.length - 1, Math.floor((x / width) * stops.length))], o = (r * width + x) * 4;
+        data[o] = a[0]; data[o + 1] = a[1]; data[o + 2] = a[2]; data[o + 3] = 255;
+        continue;
+      }
       const t = (x / (width - 1)) * (stops.length - 1), i = Math.min(Math.max(0, stops.length - 2), Math.floor(t));
       const a = stops[i], b = stops[Math.min(stops.length - 1, i + 1)], f = t - i;
       const o = (r * width + x) * 4;
@@ -186,18 +201,40 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade } = {}) {
   const wrap = T.clamp(T.dot(N, L).mul(0.6).add(0.45), 0, 1);
   const light = T.mix(vec(T, style.fill || '#7078a0'), vec(T, style.key || '#ffffff'), wrap).mul(T.mix(0.92, 1.08, T.smoothstep(0.5, 0.95, N.y)));
 
+  // water: waves, sky reflection, sun glints and shore foam (after the original's water shader)
+  let waterTop = T.float(0), water = c;
+  if (style.water !== false) {
+    waterTop = rowMask('water').mul(T.float(1).sub(side));
+    const t = T.time ?? T.float(0);
+    const wp = T.positionWorld.xz.div(voxel * 5);
+    const wave = (p) => vnoise(p.add(T.vec2(t.mul(0.32), t.mul(0.21)))).add(vnoise(p.mul(2.7).sub(T.vec2(t.mul(0.47), t.mul(-0.29)))).mul(0.5));
+    const de = 0.12, h0 = wave(wp), hx = wave(wp.add(T.vec2(de, 0))), hz = wave(wp.add(T.vec2(0, de)));
+    const Nw = T.normalize(T.vec3(h0.sub(hx).div(de).mul(0.32), 1, h0.sub(hz).div(de).mul(0.32)));
+    const V = T.normalize(T.cameraPosition.sub(T.positionWorld));
+    const fres = T.pow(T.float(1).sub(T.max(T.dot(Nw, V), 0)), 4);
+    const H = T.normalize(L.add(V));
+    const spec = T.pow(T.max(T.dot(Nw, H), 0), 160);
+    const glint = T.step(0.993, vnoise(T.positionWorld.xz.div(voxel * 0.7).add(T.vec2(t.mul(1.3), t.mul(-0.9)))));
+    const shore = T.float(1).sub(T.smoothstep(0.0, 0.1, U));
+    const foam = shore.mul(T.smoothstep(0.45, 0.8, vnoise(T.positionWorld.xz.div(voxel * 1.2).add(T.vec2(t.mul(0.15), 0)))));
+    water = T.mix(c, vec(T, style.sky || '#cfe3f5'), T.min(fres.mul(0.55), 0.7)).mul(T.mix(0.9, 1.05, h0.mul(0.67)));
+    water = water.add(vec(T, style.key || '#ffffff').mul(spec.mul(1.6).add(glint.mul(0.18))));
+    water = T.mix(water, T.vec3(0.92, 0.97, 1.0), foam.mul(0.55));
+  }
+
   // voxel edges, anti-aliased: thin dark seams that fade out once a voxel is only a few pixels on screen
   const q = T.positionWorld.div(voxel), w = T.fwidth(q);
   const f = T.abs(T.fract(q).sub(0.5));
   const seam = (fa, wa, na) => T.smoothstep(T.float(0.5).sub(wa.mul(1.2)).sub(0.03), 0.5, fa).mul(T.abs(na).oneMinus());
   const e = T.max(T.max(seam(f.x, w.x, N.x), seam(f.y, w.y, N.y)), seam(f.z, w.z, N.z));
   const edgeFade = T.float(1).sub(T.smoothstep(0.18, 0.45, T.max(T.max(w.x, w.y), w.z)));
-  const edge = T.mix(1, style.edge ?? 0.8, e.mul(edgeFade));
+  const edge = T.mix(1, style.edge ?? 0.8, e.mul(edgeFade).mul(T.float(1).sub(waterTop))); // no grid on water
   // strata: a fine dark line between bands, also faded with distance
   const bandLine = T.smoothstep(T.float(1).sub(w.y.mul(1.5)).sub(0.02), 1, T.fract(level.add(T.fract(q.y)).div(band))).mul(isCut).mul(edgeFade);
 
   const lit = c.mul(light).mul(edge).mul(T.float(1).sub(bandLine.mul(0.25)));
   let out = T.mix(lit, c, T.clamp(unlit, 0, 1));
+  out = T.mix(out, water, waterTop); // water is lit by its own reflection, not the voxel light
 
   if (fade) {
     // immersive: dissolve toward the background with distance from the centre (dithered, so no sorting issues)

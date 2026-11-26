@@ -18,7 +18,8 @@ import path from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 import { buildPlace } from './geo/place.js';
 import { placeColumns } from './builder/place-scene.js';
-import { STYLES, ROWS, ROW_COUNT, paletteImage } from './builder/styles.js';
+import { STYLES, ROWS, ROW_COUNT } from './builder/styles.js';
+import { placeMaterials } from './builder/glb.js';
 import { inflate } from './bake/inflate.js';
 import { b64, bakeBand } from './bake/mesher.js';
 
@@ -50,17 +51,16 @@ for (let k = 0; k < N; k++) {
 }
 if (Math.max(...cols.col) > 255) { console.error('columns taller than 255 voxels: lower --exag or --n'); process.exit(1); }
 
-// colours: sample the style's palette rows (the same colours the live shader uses)
-const img = paletteImage(style);
-const sample = (row, u) => { const x = Math.round(u * (img.width - 1)), o = (ROWS.indexOf(row) * img.width + x) * 4; return '#' + [0, 1, 2].map((c) => img.data[o + c].toString(16).padStart(2, '0')).join(''); };
+// colours: the same table the .glb export uses (one flat colour per class)
+const { M, wallOf, roofOf } = placeMaterials(style);
+const col = (m) => M[m].color;
 const MATS = [
-  ['Ground Low', sample('land', 0.15), 0.9], ['Ground Mid', sample('land', 0.5), 0.9], ['Ground High', sample('land', 0.88), 0.9],
-  ['Grass', sample('grass', 0.5), 0.9], ['Forest', sample('wood', 0.5), 0.9], ['Sand', sample('sand', 0.5), 0.9],
-  ['Rock', sample('rock', 0.5), 0.85], ['Ice', sample('ice', 0.5), 0.6], ['Water', sample('water', 0.6), 0.25],
-  ['Roads', sample('road', 0.5), 0.8], ['Roofs', sample('roof', 0.25), 0.8], ['Building Walls', sample('building', 0.25), 0.8],
-  ['Trees', sample('tree', 0.5), 0.9], ['Ground Sides', sample('side', 0.35), 0.9],
-  // strata: the cut row's own stops, spread out so neighbouring bands contrast
-  ...[0, 2, 4, 1].map((i, j) => [`Strata ${j + 1}`, style.rows.cut[i % style.rows.cut.length], 0.9]),
+  ['Ground Low', col('Ground · Low'), 0.9], ['Ground Mid', col('Ground · Mid'), 0.9], ['Ground High', col('Ground · High'), 0.9],
+  ['Grass', col('Grass'), 0.9], ['Forest', col('Forest'), 0.9], ['Sand', col('Sand'), 0.9],
+  ['Rock', col('Rock'), 0.85], ['Ice', col('Ice'), 0.5], ['Water', col('Water'), 0.12],
+  ['Roads', col('Roads'), 0.8], ['Roofs', col(roofOf(0.05)), 0.75], ['Building Walls', col(wallOf(0.05)), 0.8],
+  ['Trees', col('Trees'), 0.9], ['Ground Sides', col('Ground · Sides'), 0.9],
+  ...[1, 2, 3, 4].map((j) => [`Strata ${j}`, col('Strata ' + j), 0.9]),
 ];
 
 const out = path.resolve(flag('out', `bake-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`));

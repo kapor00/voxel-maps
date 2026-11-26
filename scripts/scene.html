@@ -54,6 +54,7 @@
       </fieldset>
       <div class="muted" id="ui-info"></div>
       <div class="row"><button class="btn" id="ui-build">Build</button><button class="btn ghost" id="ui-orbit">Pause</button><button class="btn ghost" id="ui-share">Copy link</button></div>
+      <div class="row"><button class="btn ghost" id="ui-glb" title="Download this build as a .glb, then drag it into the Spline editor: real objects, one material per class">Save .glb for the editor</button></div>
     </div>
   </div>
   <script>
@@ -133,6 +134,20 @@
         u.searchParams.set('place', [PLACE.lat.toFixed(5), PLACE.lon.toFixed(5), (PLACE.sizeM / 1000).toFixed(1)].join(','));
         u.searchParams.set('name', PLACE.name); u.searchParams.set('style', PLACE.style); u.searchParams.set('frame', PLACE.frame);
         try { await navigator.clipboard.writeText(u.toString()); status('Link copied'); setTimeout(() => status(''), 1500); } catch { status(u.toString()); }
+      };
+      $('ui-glb').onclick = () => {
+        if (!built) return;
+        status('Writing .glb…');
+        setTimeout(() => { // let the status paint first: a 512 city takes a second
+          try {
+            const { glb } = SplinePlace.placeGLB(built);
+            const file = (built.name.split(',')[0] || 'place').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.glb';
+            const url = URL.createObjectURL(new Blob([glb], { type: 'model/gltf-binary' }));
+            const a = document.createElement('a'); a.href = url; a.download = file; document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            status(`${file} · ${(glb.length / 1e6).toFixed(0)} MB: drag it into the Spline editor`); setTimeout(() => status(''), 5000);
+          } catch (e) { status('Could not write the .glb: ' + (e && e.message || e)); }
+        }, 30);
       };
       // search runs on Enter only: the geocoder is a shared service, not a search-as-you-type API
       $('ui-search').addEventListener('keydown', async (e) => {

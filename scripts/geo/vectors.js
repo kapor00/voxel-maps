@@ -31,7 +31,8 @@ const LABELS = {
 /**
  * @param frame from makeFrame
  * @param opts.zoom vector zoom (≤ 14); default: 14 for city-scale cells, lower for big landscapes
- * @returns {{ water: Uint8Array, bldH: Float32Array, road: Uint8Array, cover: Uint8Array, labels: object[], stats: object }}
+ * @returns {{ water: Uint8Array, bldH: Float32Array, bid: Uint8Array, road: Uint8Array, cover: Uint8Array, labels: object[], stats: object }}
+ *   bid: 1..255 per building (a hash of its id), so a building can be coloured as one; 0 = none
  */
 export async function sampleVectors(frame, { zoom, maxTiles = 100, buildings = true, roads = true, concurrency = 8 } = {}) {
   const { n, cell } = frame;
@@ -39,7 +40,8 @@ export async function sampleVectors(frame, { zoom, maxTiles = 100, buildings = t
   while (z > 6 && tilesCovering(frame, z).length > maxTiles) z--;
   const tiles = tilesCovering(frame, z);
   const tpl = await tileTemplate();
-  const water = new Uint8Array(n * n), bldH = new Float32Array(n * n), road = new Uint8Array(n * n);
+  const water = new Uint8Array(n * n), bldH = new Float32Array(n * n), bid = new Uint8Array(n * n), road = new Uint8Array(n * n);
+  let bcount = 0;
   const roadW = new Float32Array(n * n);
   const cover = new Uint8Array(n * n), coverPri = new Uint8Array(n * n);
   const labels = [];
@@ -112,6 +114,7 @@ export async function sampleVectors(frame, { zoom, maxTiles = 100, buildings = t
         const polys = [];
         for (const r of f.rings) { if (r.length < 6) continue; if (ringArea(r) > 0 || !polys.length) polys.push([r]); else polys.at(-1).push(r); }
         let h = +f.props.render_height || 0;
+        const id = 1 + (Math.imul(f.id != null ? f.id : ++bcount, 2654435761) >>> 24) % 255;
         for (const poly of polys) {
           const rings = poly.map((r) => ringPts(r, P));
           if (!(h > 0)) { // no height tag: guess from footprint, like the prototype
@@ -121,7 +124,7 @@ export async function sampleVectors(frame, { zoom, maxTiles = 100, buildings = t
             h = foot > 1600 ? 14 : 7;
           }
           const hh = Math.min(h, 450);
-          if (fillPolygon(n, rings, (k) => { if (hh > bldH[k]) bldH[k] = hh; })) stats.buildings++;
+          if (fillPolygon(n, rings, (k) => { if (hh > bldH[k]) { bldH[k] = hh; bid[k] = id; } })) stats.buildings++;
         }
       }
     }
@@ -159,5 +162,5 @@ export async function sampleVectors(frame, { zoom, maxTiles = 100, buildings = t
     }
   });
   labels.sort((a, b) => b.score - a.score);
-  return { water, bldH, road, cover, labels, stats };
+  return { water, bldH, bid, road, cover, labels, stats };
 }

@@ -1,7 +1,8 @@
 /* ── A "place pack": everything the voxel builder needs about one patch of Earth ──
-   Four aligned n×n grids (row-major, row 0 = north, column 0 = west):
+   Aligned n×n grids (row-major, row 0 = north, column 0 = west):
      height  terrain metres above sea level (ocean clamped to 0)
      bld     building height in metres above the terrain (0 = none)
+     bid     1..255 per building, so each one can be coloured as a whole (0 = none; optional)
      kind    bit 0 = water; bits 1..4 = road class id (see ROAD_CLASSES);
              bits 5..7 = land cover id (see COVER_CLASSES)
    plus named labels in frame metres and the attribution the data requires.
@@ -64,7 +65,7 @@ export async function buildPlace(o = {}) {
   return {
     v: 1,
     meta: { name, lat, lon, sizeM, n, cell: frame.cell, attribution: ATTRIBUTION, created: new Date().toISOString(), elevationZoom: elev.zoom, vectorZoom: vec.stats.zoom, stats: vec.stats },
-    height, bld: vec.bldH, kind, labels: vec.labels.slice(0, 40),
+    height, bld: vec.bldH, bid: vec.bid, kind, labels: vec.labels.slice(0, 40),
   };
 }
 
@@ -88,8 +89,9 @@ export async function encodePlace(p) {
   const N = p.meta.n ** 2;
   const h = new Int16Array(N), b = new Uint16Array(N);
   for (let k = 0; k < N; k++) { h[k] = Math.round(p.height[k]); b[k] = Math.min(65535, Math.round(p.bld[k] * 10)); }
-  const bytes = new Uint8Array(N * 5);
+  const bytes = new Uint8Array(N * (p.bid ? 6 : 5));
   bytes.set(new Uint8Array(h.buffer), 0); bytes.set(new Uint8Array(b.buffer), N * 2); bytes.set(p.kind, N * 4);
+  if (p.bid) bytes.set(p.bid, N * 5);
   return { v: p.v, meta: p.meta, labels: p.labels, grids: b64(await deflate(bytes)) };
 }
 
@@ -99,5 +101,5 @@ export async function decodePlace(o) {
   const h = new Int16Array(bytes.buffer.slice(0, N * 2)), b = new Uint16Array(bytes.buffer.slice(N * 2, N * 4));
   const height = Float32Array.from(h), bld = new Float32Array(N);
   for (let k = 0; k < N; k++) bld[k] = b[k] / 10;
-  return { v: o.v, meta: o.meta, labels: o.labels, height, bld, kind: bytes.slice(N * 4, N * 5) };
+  return { v: o.v, meta: o.meta, labels: o.labels, height, bld, kind: bytes.slice(N * 4, N * 5), bid: bytes.length >= N * 6 ? bytes.slice(N * 5, N * 6) : undefined };
 }

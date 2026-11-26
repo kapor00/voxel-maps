@@ -12,7 +12,7 @@ OpenFreeMap. A 4 km city is 2–10M voxels; it builds in about half a second
 once the map data has loaded (1–2 s) and renders at hundreds of fps on a
 laptop.
 
-Two ways to put it in a scene:
+Three ways to put it in a scene:
 
 - **Live** (default): the scene stores only the place, the style and the
   framing. A script in the scene's HTML content fetches the map data and
@@ -20,16 +20,21 @@ Two ways to put it in a scene:
   place is one edit away, and a small panel in the scene lets the viewer
   search for another place and change the size, detail, height, style and
   frame. The voxels exist only while it plays.
-- **Baked**: the place becomes ordinary Spline objects saved in the file:
-  one mesh per material per band of rows, grouped under the place's name, with
-  one material asset per class (Ground, Grass, Forest, Water, Roads, Roofs,
-  Building Walls, Strata, …). The user can select, move, delete and restyle
-  them in the editor, and they render everywhere, `<spline-viewer>` and WebGL
-  included. It needs a terminal (see "Bake" below) and is coarser: 96–224
-  cells per side instead of 512.
+- **A .glb for the editor** (full detail, real objects): the place as a
+  glTF file the user drags into the Spline editor. Every object is one
+  material named for what it is ("Roofs · Terracotta", "Walls · White",
+  "Water · Deep", "Strata 2", …), grouped under the place's name with the
+  pedestal and vitrine, so recolouring a class is one edit and the user can
+  select, move or delete anything. Per-voxel shading and water depth come in
+  as vertex colours (a Multiply layer under each material). Made by the
+  panel's "Save .glb for the editor" button, or by `scripts/export-glb.mjs`.
+- **Baked over the MCP** (no file to hand over): the same idea, but the agent
+  creates the objects itself with `3d_run_code`. Coarser (96–224 cells per
+  side) because the data travels inside the scripts, and it needs a terminal.
 
-Use live unless the user wants to edit the voxels themselves, or needs the
-place in an embed or on WebGL.
+Build live first. When the user wants to edit the voxels themselves, or
+needs the place in an embed or on WebGL, give them a .glb; bake over the MCP
+only when they can't import a file.
 
 Work in one Spline file over the Spline MCP server: create it with
 `spline_create_file` (`kind: "3d"`), pass its id as `file` on every call, and
@@ -74,8 +79,9 @@ is the area the right size? Adjust and rerun. (Node 18+, no install.)
   strip (`aspect`) for a river, coast or ridge. `immersive`: no walls; the
   ground dissolves into the background at the edges, best for flying over a
   place.
-- **Style.** `strata` (vivid: sunlit sand and ochre ground, saturated
-  greens and blues, terracotta roofs, bold rust strata on the cut), `night`
+- **Style.** `strata` (vivid and natural: sage ground, saturated greens,
+  terracotta, slate and copper roofs over white and pastel walls, turquoise
+  to deep-blue water with waves, reflections and shore foam, rust strata), `night`
   (dark blocks, glowing roads, lit windows), `snow` (fresh snow, warm
   windows) or `model` (an architect's white model). Each style sets a background colour;
   use it for the scene (step 3) so the immersive fade blends in.
@@ -142,7 +148,7 @@ Shape. Build rebuilds in place; Copy link copies the page URL with
 published scene can show any place.
 
 **Inline the builder.** Paste the contents of
-`scripts/place-scene.bundle.js` (27 KB) into a `<script>` just above the
+`scripts/place-scene.bundle.js` (36 KB) into a `<script>` just above the
 template's script; the loader uses it when it's there. The template's
 `BUNDLE` URL (jsDelivr) only works once this repository is public.
 
@@ -162,10 +168,27 @@ template's script; the loader uses it when it's there. The template's
   never resend the whole document to change a number. The user can also try
   settings in the panel and paste you the link it copies.
 
-## Bake into editable objects
+## Export a .glb for the editor
 
-When the user wants to edit the voxels in Spline, or needs the place outside
-Play mode, bake it. With a terminal:
+The user can press **Save .glb for the editor** in the scene's panel: it
+downloads exactly what is on screen. Or, with a terminal:
+
+```bash
+node scripts/export-glb.mjs "Budapest" --size 4000 --n 384 --out budapest.glb
+node scripts/export-glb.mjs --lat 47.507 --lon 19.045 --name Budapest --style strata --frame crop --aspect 1.5
+```
+
+Then the user drags the file into the Spline editor (or File → Import). Same
+options as the bake below, plus `--n` up to 768. Size grows with detail: a
+4 km city is about 30 MB at 384 and 50 MB at 512; a mountain at 512 about
+60 MB. Suggest 384 unless they need the fine detail. Tell the user: each
+object is one material, so to restyle a class they change that material's
+colour; the vertex-colour layer under it carries the shading.
+
+## Bake over the MCP
+
+When the user can't import a file, the agent can create the objects itself.
+With a terminal:
 
 ```bash
 node scripts/bake.mjs "Budapest" --size 4000 --n 160 --style strata --out /tmp/bake-budapest
@@ -189,7 +212,8 @@ meshes it made; if one fails, rerun that file alone.
   mesh using it follows.
 - Baked meshes are real objects, so hosted screenshots show them: check the
   result with `3d_take_screenshot`.
-- An agent without a terminal (ChatGPT) can't bake; build it live.
+- An agent without a terminal (ChatGPT) can't bake; build it live and point
+  the user at the panel's Save .glb button.
 
 ## Make a style
 
@@ -198,7 +222,9 @@ colour stops per cell type (`cut`, `land`, `grass`, `wood`, `farmland`,
 `sand`, `rock`, `ice`, `wetland`, `water`, `road`, `building`, `roof`,
 `tree`), sampled by terrain height, building height or road class, plus
 `background`, `frame`, `pedestal`, `edge`, `ambient`, optional `glow` rows
-and `windows`, and a `flat` table of plain colours. To give the user their
+and `windows`, `steps` (rows that pick one colour per building instead of
+blending: walls and roofs), `sky` (what water reflects; `water: false`
+turns the water effects off), and a `flat` table of plain colours. To give the user their
 own look, copy a style, change its colours, rebuild the bundle
 (`node scripts/build-bundle.mjs`) and inline it. You can also pass a style
 object as `PLACE.style` directly.
