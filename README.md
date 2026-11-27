@@ -17,11 +17,14 @@ a sun you can move, in a scene you can restyle, explore, share and export. No
 
 [![Place to 3D: a prompt becomes Lisbon in Spline, then a minute of live features and fourteen places](assets/place-to-3d.jpg)](assets/place-to-3d.mp4)
 
-75 seconds ([place-to-3d.mp4](assets/place-to-3d.mp4), with an original dub techno score): an agent
-turns "Make a 3D map of Lisbon" into a Spline file, the scene runs inside the Spline editor, then
-the live features one by one: dragging the map through the volume, the sun and its shadows,
-themes, volume shapes, width/height/depth, field of view, clay materials and .glb export, and
-a bento and a grid of places in every theme and shape.
+91 seconds ([place-to-3d.mp4](assets/place-to-3d.mp4), with an original dub techno score): an agent
+turns "Make a 3D map of Lisbon" into a Spline file; a bento of places, mountains to megacities;
+the scene running inside the Spline editor; immersive flights from the overview down to street
+level over Manhattan and Hong Kong; the live features (dragging the map through the volume,
+themes, volume shapes, width/height/depth); a GLB exported from the terminal with the Spline MCP
+server connected, dropped into Spline, recoloured one class at a time and zoomed into to the
+voxels; Spline's own sky, fog, ambient occlusion and depth of field on the Matterhorn, set by the
+agent over MCP; and a grid of sixteen places.
 
 ## Light, shadow and clay
 
@@ -94,12 +97,36 @@ edit, delete a district, add your own objects on top, and publish it
 anywhere, `<spline-viewer>` and WebGL included. Per-voxel shading and water
 depth come along as vertex colours.
 
+To recolour a class in the editor, double-click into the model twice (the
+group, then the mesh), click its material and type a colour: every roof of
+that class changes at once. Spline scales an imported model to its own size,
+so a city arrives about 4,000 units wide; scale the group down (0.2 or so) to
+work with it next to other objects.
+
 The editor's Play preview runs in a sandbox that can't save files: there the
 button shows the equivalent `export-glb.mjs` command instead. Open the scene's
 public URL to download directly.
 
 No file to hand over? An agent can also **bake** the place straight into the
 file through the Spline MCP server (`scripts/bake.mjs`), at a coarser grid.
+
+## Spline's own sky, fog, AO and depth of field
+
+The voxels take Spline's page effects. Set `sky: true`
+in the scene's `SCENE` line, so the edges dissolve into whatever Spline draws
+behind them, then turn on **Sky**, **Fog**, **Ambient Shadows** and **Effects**
+in the editor's right panel, or have your agent do it over the Spline MCP
+server:
+
+```js
+sky({ mode: 'physical', timeOfDay: 17.3, weather: 'partlyCloudy' }); // pass mode: a timeOfDay alone keeps an HDRI sky
+fog({ mode: 'both', color: '#d9c9bb', near: 180, far: 1200, density: 0.008, heightFalloff: 0.02 });
+environment({ ao: true });
+fx('depthOfField', { focusDistance: 8, focalLength: 6, bokehScale: 4 }); // a fraction of the camera's range, not world units
+```
+
+Page effects apply when Preview starts: after changing them, go back to Edit
+and press Preview again.
 
 ## Or build it from cube instances
 
