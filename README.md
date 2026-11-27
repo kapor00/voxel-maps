@@ -1,46 +1,89 @@
 # Place to 3D: turn any place on Earth into a 3D world
 
 An agent skill for **Claude Code, Codex, Cursor and ChatGPT** that builds any
-real place, from a street corner to the Grand Canyon, as an interactive voxel
+real place, from a street corner to the Grand Canyon, as a live voxel
 **3D world in [Spline](https://spline.design/?utm_source=github&utm_medium=readme&utm_campaign=place-to-3d)**:
-real terrain, real building heights, parks, forests, roads and rivers, in a
-scene you can keep editing, style and publish to the web. No 3D design
-experience needed.
+real terrain, real building heights, parks, forests, roads and rivers, lit by
+a sun you can move, in a scene you can restyle, explore, share and export. No
+3D design experience needed.
 
-![Budapest as a voxel specimen block, orbiting, built by an agent in Spline](assets/budapest-orbit.gif)
+![Budapest in the Clay theme, orbiting in its vitrine, built by an agent in Spline](assets/budapest-clay-orbit.gif)
 
 > "Make a 3D map of downtown Budapest."
-> "Turn my hometown into a voxel diorama, night style."
-> "Build the Matterhorn in snow as a cut-out block."
+> "Turn my hometown into a white architectural model."
+> "Build Mount Fuji in autumn colours."
 
-## Two ways to frame a place
+## Watch the walkthrough
 
-| Crop | Immersive |
+[![Two-minute walkthrough of the live panel: drag the map, switch themes, move the sun, search any place, save a .glb](assets/walkthrough.jpg)](assets/walkthrough.mp4)
+
+Two minutes, recorded from the running scene ([walkthrough.mp4](assets/walkthrough.mp4)):
+drag the map through the volume, orbit and zoom, reshape it, switch themes,
+recolour a whole class from one swatch, sweep the sun with live shadows, tune
+the clay materials, go immersive, open a featured place, search for Lisbon
+and save a .glb.
+
+## Light, shadow and clay
+
+| | |
 |---|---|
-| ![Budapest as a crop](assets/budapest-orbit.gif) | ![Rio de Janeiro, immersive](assets/rio-orbit.gif) |
-| A block cut out of the world: strata on the cut, a pedestal underneath and a wireframe vitrine around it. | No walls: the ground dissolves into the background toward the edges, so the place reads as part of an endless world. |
+| ![Midtown Manhattan as a white model with soft cast shadows](assets/manhattan-model-close.jpg) | ![Budapest close up in the Clay theme](assets/budapest-clay-close.jpg) |
+| **A sun you can move.** Soft shadows are ray-marched through the city's heightfield every frame, with ambient occlusion in the street canyons and glossy, sky-reflecting glass towers. [Orbit clip](assets/manhattan-model-orbit.mp4) | **Clay, the way Spline renders it.** Bevelled voxels, a subsurface glow at the terminator, a light-to-deep gradient down every wall, a fresnel rim and a studio sheen. [Orbit clip](assets/budapest-clay-orbit.mp4) |
 
-Full-quality videos (1280 px, 10 s): [Budapest, crop](assets/budapest-orbit.mp4) · [Rio de Janeiro, immersive](assets/rio-orbit.mp4)
+All of it is live and runs at about 90 fps at 1080p: every look setting is a
+GPU uniform, so moving a slider changes the next frame without rebuilding
+anything.
+
+## Demos
+
+Fourteen places in thirteen themes, each built by the skill in about four
+seconds, map data included, and rendered with the Spline runtime. The exact
+settings are in [`examples/demos.json`](examples/demos.json).
+
+| | |
+|---|---|
+| ![Budapest, Clay](assets/budapest-clay.jpg) | ![Rio de Janeiro, Tropical, immersive](assets/rio-tropical.jpg) |
+| **Budapest** · 4 km · Clay | **Rio de Janeiro** · 9 km · Tropical · immersive |
+| ![Monument Valley, Desert](assets/monument-desert.jpg) | ![Venice, White model](assets/venice-model.jpg) |
+| **Monument Valley** · 14 km · Desert | **Venice** · 3 km · White model |
+| ![Tokyo Shibuya, Neon](assets/tokyo-neon.jpg) | ![Paris, Strata](assets/paris-strata.jpg) |
+| **Tokyo · Shibuya** · 3 km · Neon · [orbit](assets/tokyo-neon-orbit.mp4) | **Paris** · 4 km · Strata |
+| ![San Francisco, Clay Light](assets/sf-claylight.jpg) | ![London, Ink](assets/london-ink.jpg) |
+| **San Francisco** · 5 km · Clay Light | **London** · 3.5 km · Ink |
+| ![Mount Fuji, Autumn](assets/fuji-autumn.jpg) | ![Santorini, Pastel](assets/santorini-pastel.jpg) |
+| **Mount Fuji** · 16 km · Autumn · [orbit](assets/fuji-autumn-orbit.mp4) | **Santorini** · 7 km · Pastel |
+| ![Hong Kong, Night](assets/hongkong-night.jpg) | ![Budapest, Clay Light](assets/budapest-claylight.jpg) |
+| **Hong Kong** · 5 km · Night | **Budapest** · 4 km · Clay Light |
+
+Themes: Clay, Clay Light, White model, Strata, Night, Snow, Pastel, Desert,
+Autumn, Tropical, Blueprint, Neon and Ink. A theme is a table of colours plus
+its light and material settings: copy one in
+[`scripts/builder/styles.js`](scripts/builder/styles.js) to make your own.
 
 ## A live panel, like a Spline plugin
 
-![The scene's panel, styled like Spline's sidebar: location, shape, style swatches, water, light, camera and export](assets/panel.jpg)
+![The scene's panel in Spline's sidebar style, beside Budapest in the Clay theme](assets/panel.jpg)
 
-The scene carries a panel in Spline's own sidebar style, and everything on
-it applies live. The voxels are built on the GPU, so you can **drag the map
-inside the volume** and keep going: the next area streams in as you near the
-edge. Pick one of 17 featured places or search any other; change the
-height, slab, vitrine and shape, switch among 12 themes (the default, Clay, is Spline's toy look: candy
-colours, wall gradients, a fresnel rim), recolour a class
-from one swatch, or shift hue, saturation, warmth and contrast, and it
-changes on the next frame. **Save .glb** downloads exactly
-what's on screen for the editor, **Copy link** shares the place, and **Copy
-settings** gives your agent the lines to make it the scene's default. Hide
-the panel for a clean embed.
+Everything on the panel applies live. The voxels are built on the GPU, so
+you can **drag the map inside the volume** and keep going: the next area
+streams in as you near the edge. Alt-drag orbits, the wheel zooms.
+
+- **Location**: 17 featured places, search for any other, size and detail.
+- **Shape**: crop or immersive, proportions, height, slab, vitrine, trees.
+- **Theme** and **Colors**: one click per theme; eight key swatches that
+  recolour a whole class, plus hue, saturation, brightness, contrast, warmth.
+- **Light**: sun angle and height, sun and sky colour and power, shadows,
+  softness, occlusion, exposure, lit windows, glowing roads.
+- **Materials**: bevel, subsurface, specular, the wall gradient and its
+  depth colour, rim and sheen.
+- **Export**: **Save .glb** (exactly what is on screen), **Copy link** and
+  **Copy settings** (the lines that make your look the scene's default).
+
+Hide the panel for a clean embed.
 
 ## Real, editable objects in the Spline editor
 
-Press **Save .glb for the editor** in the panel (or run
+Press **Save .glb** in the panel (or run
 `node scripts/export-glb.mjs "Budapest"`) and drag the file into Spline. The
 place arrives at full detail as ordinary objects grouped under its name, one
 material per class: "Roofs · Terracotta", "Roofs · Slate", "Walls · White",
@@ -48,6 +91,10 @@ material per class: "Roofs · Terracotta", "Roofs · Slate", "Walls · White",
 edit, delete a district, add your own objects on top, and publish it
 anywhere, `<spline-viewer>` and WebGL included. Per-voxel shading and water
 depth come along as vertex colours.
+
+The editor's Play preview runs in a sandbox that can't save files: there the
+button shows the equivalent `export-glb.mjs` command instead. Open the scene's
+public URL to download directly.
 
 No file to hand over? An agent can also **bake** the place straight into the
 file through the Spline MCP server (`scripts/bake.mjs`), at a coarser grid.
@@ -62,50 +109,19 @@ hidden points mesh and drawn instanced. Make the cubes rounder, smaller or
 glossier in the editor and the whole city follows. Budapest is ~21k cubes
 in 25 draws.
 
-## Demos
-
-Six places, each built by the skill in about half a second once the map data
-had loaded, and rendered with the Spline runtime. The exact settings are in
-[`examples/demos.json`](examples/demos.json).
-
-| | |
-|---|---|
-| ![Budapest, strata, crop](assets/budapest-strata-crop.jpg) | ![Manhattan, night, crop](assets/manhattan-night-crop.jpg) |
-| **Budapest** · 4 km · strata · crop · 9.6M voxels, 5,000 trees | **Manhattan** · 4 km · night · crop · 9.2M voxels |
-| ![Grand Canyon, strata, crop](assets/grand-canyon-strata-crop.jpg) | ![Matterhorn, snow, crop](assets/matterhorn-snow-crop.jpg) |
-| **Grand Canyon** · 20 km · strata · crop · 17.3M voxels | **Matterhorn** · 9 km · snow · crop · 23M voxels |
-| ![Rio de Janeiro, strata, immersive](assets/rio-strata-immersive.jpg) | ![Venice, white model, crop](assets/venice-model-crop.jpg) |
-| **Rio de Janeiro** · 9 km · strata · immersive | **Venice** · 3 km · white model · crop · 8.4M voxels |
-
-## Styles
-
-| Strata | Night | Snow | White model |
-|---|---|---|---|
-| ![Strata](assets/budapest-strata-crop.jpg) | ![Night](assets/manhattan-night-crop.jpg) | ![Snow](assets/matterhorn-snow-crop.jpg) | ![White model](assets/venice-model-crop.jpg) |
-
-Strata is the vivid one: sage ground and saturated greens, terracotta,
-slate, tile and brick roofs over white and pastel walls, rust rock strata, and
-water that runs from turquoise at the bank to deep blue, with moving waves,
-sky reflections, sun glints and foam along the shore. A style is a table of colours:
-one row of colour stops per cell type (land,
-grass, forest, farmland, sand, rock, ice, water, roads, building walls,
-roofs, trees and the strata on the cut). Copy one in
-[`scripts/builder/styles.js`](scripts/builder/styles.js) and change the
-colours to make your own.
-
 ## What you get
 
 - **Any place, real data.** Elevation from the AWS Terrain Tiles; buildings
   with their mapped heights, roads, rivers, lakes, coastlines, parks, forests,
   fields, sand, bare rock and glaciers from OpenStreetMap via OpenFreeMap.
   Voxel trees grow in forests and parks.
-- **Millions of voxels, smooth.** A 4 km city is 2–10M voxels, built in about
-  half a second once the map data has loaded (1–2 s). It runs at hundreds of
-  frames per second on a laptop.
-- **An editable Spline file, not a pile of three.js.** Bake the place and
-  every voxel is an ordinary Spline object with a named material; or keep it
-  live and let viewers search their own place. Add your own text, lights and
-  interactions, then share a link, embed it or export it to code.
+- **A whole city, live.** Up to 512 × 512 columns, built in the vertex
+  shader from two data textures; about four seconds from a place name to a
+  finished city, and 90 fps at 1080p with shadows on.
+- **An editable Spline file, not a pile of three.js.** Save or bake the place
+  and every voxel is an ordinary Spline object with a named material; or keep
+  it live and let viewers explore their own place. Add your own text, lights
+  and interactions, then share a link, embed it or export it to code.
 - **Licence-clean.** Open data only (OSM under the ODbL, the Terrain Tiles),
   with the attribution shown in the scene. No Google 3D Tiles, no proprietary
   imagery.
@@ -132,11 +148,12 @@ you and press **Play**.
    top-down preview PNG.
 2. It adds a camera to a new Spline file and sets the scene's HTML content to
    [`scripts/scene.html`](scripts/scene.html).
-3. When the scene plays, the builder (`scripts/place-scene.bundle.js`, 25 KB)
-   fetches the map data, rasterises it onto a grid (terrain height, building
-   height, water, road class, land cover) and meshes it into surface-only
-   voxel chunks: one mesh per 64×64 columns, with voxel edges drawn by the
-   shader.
+3. When the scene plays, the builder (`scripts/place-scene.bundle.js`, 62 KB)
+   fetches the map data for an area twice the visible window, packs it into
+   two RGBA8 textures (terrain and building height, water, road class, land
+   cover), and draws it with one template mesh whose vertex shader raises
+   every column. The fragment shader lights it: sun shadows ray-marched
+   through the heightfield, ambient occlusion, bevels, subsurface, glass.
 4. Or, to bake: `scripts/bake.mjs` does steps 1–3 on your machine at a
    coarser grid, compresses each band of rows, and writes scripts that
    decompress and mesh it inside Spline as real objects.

@@ -1,112 +1,76 @@
 {
-  "_note": "PLACE and ORBIT values for scripts/scene.html behind each image in assets/, with SCENE.worldWidth 614. Set the Spline background to the style's background colour (see STYLES in scripts/builder/styles.js).",
-  "budapest-strata-crop": {
+  "_note": "PLACE and ORBIT values for scripts/scene.html behind each image and clip in assets/ (SCENE: worldWidth 614, backdrop on). Rendered with the Spline runtime at 1920x1080; the backdrop follows the theme.",
+  "budapest-clay": {
     "place": {
       "name": "Budapest",
       "lat": 47.507,
       "lon": 19.045,
       "sizeM": 4000,
       "n": 512,
-      "style": "strata",
+      "style": "clay",
       "frame": "crop"
     },
     "orbit": {
-      "dist": 1.45,
+      "dist": 1.4,
       "pitch": 27,
       "yaw": 205,
-      "target": [
-        0,
-        40,
-        0
-      ]
+      "speed": 0
     }
   },
-  "manhattan-night-crop": {
+  "budapest-clay-close": {
+    "place": {
+      "name": "Budapest",
+      "lat": 47.507,
+      "lon": 19.045,
+      "sizeM": 4000,
+      "n": 512,
+      "style": "clay",
+      "frame": "crop",
+      "vitrine": 0
+    },
+    "orbit": {
+      "dist": 0.42,
+      "pitch": 34,
+      "yaw": 215,
+      "speed": 0
+    }
+  },
+  "budapest-claylight": {
+    "place": {
+      "name": "Budapest",
+      "lat": 47.507,
+      "lon": 19.045,
+      "sizeM": 4000,
+      "n": 512,
+      "style": "claylight",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.4,
+      "pitch": 27,
+      "yaw": 205,
+      "speed": 0
+    }
+  },
+  "manhattan-model-close": {
     "place": {
       "name": "Manhattan",
       "lat": 40.7484,
       "lon": -73.9857,
       "sizeM": 4000,
       "n": 512,
-      "style": "night",
-      "frame": "crop"
-    },
-    "orbit": {
-      "dist": 1.45,
-      "pitch": 26,
-      "yaw": 160,
-      "target": [
-        0,
-        50,
-        0
-      ]
-    }
-  },
-  "grand-canyon-strata-crop": {
-    "place": {
-      "name": "Grand Canyon",
-      "lat": 36.0886,
-      "lon": -112.115,
-      "sizeM": 20000,
-      "n": 512,
-      "style": "strata",
-      "frame": "crop"
-    },
-    "orbit": {
-      "dist": 1.6,
-      "pitch": 24,
-      "yaw": 215,
-      "target": [
-        0,
-        70,
-        0
-      ]
-    }
-  },
-  "matterhorn-snow-crop": {
-    "place": {
-      "name": "Matterhorn",
-      "lat": 45.9763,
-      "lon": 7.6586,
-      "sizeM": 9000,
-      "n": 512,
-      "style": "snow",
+      "style": "model",
       "frame": "crop",
-      "exag": 1.1
+      "vitrine": 0
     },
     "orbit": {
-      "dist": 1.75,
-      "pitch": 20,
+      "dist": 0.5,
+      "pitch": 32,
       "yaw": 160,
-      "target": [
-        0,
-        130,
-        0
-      ]
+      "speed": 0
     }
   },
-  "rio-strata-immersive": {
-    "place": {
-      "name": "Rio de Janeiro",
-      "lat": -22.96,
-      "lon": -43.19,
-      "sizeM": 9000,
-      "n": 512,
-      "style": "strata",
-      "frame": "immersive"
-    },
-    "orbit": {
-      "dist": 0.6,
-      "pitch": 26,
-      "yaw": 200,
-      "target": [
-        0,
-        30,
-        0
-      ]
-    }
-  },
-  "venice-model-crop": {
+  "venice-model": {
     "place": {
       "name": "Venice",
       "lat": 45.438,
@@ -117,14 +81,234 @@
       "frame": "crop"
     },
     "orbit": {
-      "dist": 1.45,
+      "dist": 1.4,
       "pitch": 32,
       "yaw": 180,
-      "target": [
-        0,
-        30,
-        0
-      ]
+      "speed": 0
+    }
+  },
+  "tokyo-neon": {
+    "place": {
+      "name": "Tokyo · Shibuya",
+      "lat": 35.6595,
+      "lon": 139.7005,
+      "sizeM": 3000,
+      "n": 512,
+      "style": "neon",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.35,
+      "pitch": 30,
+      "yaw": 200,
+      "speed": 0
+    }
+  },
+  "hongkong-night": {
+    "place": {
+      "name": "Hong Kong",
+      "lat": 22.2855,
+      "lon": 114.1577,
+      "sizeM": 5000,
+      "n": 512,
+      "style": "night",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.45,
+      "pitch": 26,
+      "yaw": 160,
+      "speed": 0
+    }
+  },
+  "sf-claylight": {
+    "place": {
+      "name": "San Francisco",
+      "lat": 37.7905,
+      "lon": -122.4155,
+      "sizeM": 5000,
+      "n": 512,
+      "style": "claylight",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.45,
+      "pitch": 28,
+      "yaw": 215,
+      "speed": 0
+    }
+  },
+  "santorini-pastel": {
+    "place": {
+      "name": "Santorini",
+      "lat": 36.415,
+      "lon": 25.432,
+      "sizeM": 7000,
+      "n": 512,
+      "style": "pastel",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.5,
+      "pitch": 26,
+      "yaw": 200,
+      "speed": 0
+    }
+  },
+  "fuji-autumn": {
+    "place": {
+      "name": "Mount Fuji",
+      "lat": 35.3606,
+      "lon": 138.7274,
+      "sizeM": 16000,
+      "n": 512,
+      "style": "autumn",
+      "frame": "crop",
+      "exag": 1.2
+    },
+    "orbit": {
+      "dist": 1.6,
+      "pitch": 22,
+      "yaw": 200,
+      "speed": 0
+    }
+  },
+  "monument-desert": {
+    "place": {
+      "name": "Monument Valley",
+      "lat": 36.99,
+      "lon": -110.1,
+      "sizeM": 14000,
+      "n": 512,
+      "style": "desert",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.55,
+      "pitch": 22,
+      "yaw": 215,
+      "speed": 0
+    }
+  },
+  "rio-tropical": {
+    "place": {
+      "name": "Rio de Janeiro",
+      "lat": -22.96,
+      "lon": -43.19,
+      "sizeM": 9000,
+      "n": 512,
+      "style": "tropical",
+      "frame": "immersive"
+    },
+    "orbit": {
+      "dist": 0.6,
+      "pitch": 26,
+      "yaw": 200,
+      "speed": 0
+    }
+  },
+  "london-ink": {
+    "place": {
+      "name": "London",
+      "lat": 51.5045,
+      "lon": -0.1232,
+      "sizeM": 3500,
+      "n": 512,
+      "style": "ink",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.4,
+      "pitch": 30,
+      "yaw": 190,
+      "speed": 0
+    }
+  },
+  "paris-strata": {
+    "place": {
+      "name": "Paris",
+      "lat": 48.8566,
+      "lon": 2.3415,
+      "sizeM": 4000,
+      "n": 512,
+      "style": "strata",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.4,
+      "pitch": 28,
+      "yaw": 200,
+      "speed": 0
+    }
+  },
+  "budapest-clay-orbit": {
+    "place": {
+      "name": "Budapest",
+      "lat": 47.507,
+      "lon": 19.045,
+      "sizeM": 4000,
+      "n": 512,
+      "style": "clay",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.4,
+      "pitch": 27,
+      "yaw": 205,
+      "speed": 14
+    }
+  },
+  "manhattan-model-orbit": {
+    "place": {
+      "name": "Manhattan",
+      "lat": 40.7484,
+      "lon": -73.9857,
+      "sizeM": 4000,
+      "n": 512,
+      "style": "model",
+      "frame": "crop",
+      "vitrine": 0
+    },
+    "orbit": {
+      "dist": 0.6,
+      "pitch": 32,
+      "yaw": 160,
+      "speed": 10
+    }
+  },
+  "tokyo-neon-orbit": {
+    "place": {
+      "name": "Tokyo · Shibuya",
+      "lat": 35.6595,
+      "lon": 139.7005,
+      "sizeM": 3000,
+      "n": 512,
+      "style": "neon",
+      "frame": "crop"
+    },
+    "orbit": {
+      "dist": 1.35,
+      "pitch": 30,
+      "yaw": 200,
+      "speed": 14
+    }
+  },
+  "fuji-autumn-orbit": {
+    "place": {
+      "name": "Mount Fuji",
+      "lat": 35.3606,
+      "lon": 138.7274,
+      "sizeM": 16000,
+      "n": 512,
+      "style": "autumn",
+      "frame": "crop",
+      "exag": 1.2
+    },
+    "orbit": {
+      "dist": 1.6,
+      "pitch": 22,
+      "yaw": 200,
+      "speed": 12
     }
   }
 }

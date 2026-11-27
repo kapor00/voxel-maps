@@ -151,7 +151,7 @@ export const STYLES = {
   model: {
     label: 'White model',
     background: '#d9d6cf', frame: '#8f8a80', pedestal: '#bdb8ae', fallback: '#ece8e1',
-    key: '#ffffff', fill: '#b8bcc6', edge: 0.9, water: false,
+    key: '#ffffff', fill: '#b8bcc6', edge: 0.92, water: false, bevel: 0.7, sss: 0.5, shadow: 0.85, soft: 4, ao: 1, spec: 0.15, sunEl: 30, grad: 0.25, rim: 0.15, sheen: 0.2,
     rows: {
       cut: ['#d8d3ca', '#cbc6bc', '#e2ddd4', '#c2bdb3'],
       land: ['#eeebe4', '#f3f0ea'], grass: ['#e6e8df'], wood: ['#dfe3d8'], farmland: ['#ebe8df'],
@@ -199,8 +199,21 @@ export const STYLES = {
     walls: ['#ffd6e4', '#e6d4ff', '#ffe2ef', '#d9c8ff', '#ffe6c4', '#bfe6ff'],
     roofs: ['#ff7aa2', '#c76ff3', '#ff95b8', '#a774f2', '#ffae42', '#e8f2ff'],
     strata: ['#c76ff3', '#7630bb', '#ff8fb4', '#5136a4', '#ff9baf', '#983c64'],
-    edge: 0.9, sat: 1.12, contrast: 1.06, grad: 0.75, deep: '#3a1678', rim: 0.7, rimColor: '#ffdcf6', sheen: 0.55,
+    edge: 0.94, sat: 1.12, contrast: 1.06, grad: 0.7, deep: '#3a1678', rim: 0.6, rimColor: '#ffdcf6', sheen: 0.45,
+    bevel: 0.9, sss: 0.8, spec: 0.35, shadow: 0.72, soft: 4, ao: 0.85, sunI: 0.8, ambI: 0.95,
     tints: [{ color: '#a9b8ff', amount: 0.2 }, { color: '#c9a8f8', amount: 0.15 }],
+  }),
+  /** Clay Light: the classic soft clay render — pale candy clay on a light lavender ground, rounded voxels, soft shadows. */
+  claylight: theme({
+    label: 'Clay Light', background: '#e9e4f5', frame: '#a99ce0', pedestal: '#d9d2ee', ground: '#d4ccef', high: '#ece4ff', snow: '#ffffff',
+    green: '#9fe0bf', forest: '#6cc79e', fields: '#ffe0a3', sand: '#ffe6c2', rock: '#cdb8f2', cliff: '#bba6ee', water: ['#9fdcff', '#6f7cf0'],
+    road: '#ffffff', key: '#fffaf4', fill: '#9a8fd6', sky: '#ffffff',
+    walls: ['#ffffff', '#fff0f5', '#f1edff', '#fff6e6', '#eef9ff', '#d9ecff'],
+    roofs: ['#ffb3c7', '#c9b6ff', '#ffd29a', '#a9d8ff', '#b9f0d8', '#f2f7ff'],
+    strata: ['#cdb8f2', '#b39ce8', '#f2c4d8', '#a58ee0', '#e6d8ff', '#c0aef0'],
+    edge: 0.96, grad: 0.5, deep: '#6a52c0', rim: 0.3, rimColor: '#ffffff', sheen: 0.4,
+    bevel: 1, sss: 0.9, spec: 0.25, shadow: 0.85, soft: 4, ao: 1, sunI: 1.02, ambI: 0.7, sunEl: 32,
+    tints: [{ color: '#f6d6ec', amount: 0.15 }],
   }),
   pastel: theme({
     label: 'Pastel', background: '#efe9f4', ground: '#cfe3c8', high: '#f1dcc4', snow: '#ffffff', green: '#a6d8a0', forest: '#7fc28d', fields: '#e8e3a4',
@@ -288,6 +301,11 @@ export function styleUniformValues(style) {
     // the clay look: each wall runs light → deep (toward `deep`), a fresnel rim, a soft studio sheen
     grad: style.grad ?? 0.45, deep: style.deep || '#2a1458', rim: style.rim ?? 0.35, rimColor: style.rimColor || style.sky || '#ffffff',
     sheen: style.sheen ?? 0.3,
+    // light: a sun you can move (degrees), its and the sky's strength, soft heightfield shadows and AO (GPU view),
+    // bevelled voxel edges, subsurface wrap, specular (clay sheen, glossy glass towers), exposure
+    sunAz: style.sunAz ?? -60, sunEl: style.sunEl ?? 33, sunI: style.sunI ?? 0.85, ambI: style.ambI ?? 0.85,
+    shadow: style.shadow ?? 0.8, soft: style.soft ?? 6, ao: style.ao ?? 0.75, bevel: style.bevel ?? 0.45,
+    sss: style.sss ?? 0.35, spec: style.spec ?? 0.3, exposure: style.exposure ?? 1,
   };
 }
 
@@ -319,7 +337,12 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     hue: T.uniform(v0.hue), sat: T.uniform(v0.sat), bright: T.uniform(v0.bright), contrast: T.uniform(v0.contrast), warm: T.uniform(v0.warm),
     grad: T.uniform(v0.grad), deep: T.uniform(col(v0.deep)), rim: T.uniform(v0.rim), rimColor: T.uniform(col(v0.rimColor)), sheen: T.uniform(v0.sheen),
     top: T.uniform(voxel * 80), // world height the vertical gradient spans (gpu-view keeps it at the terrain's top)
+    sun: T.uniform(new three.Vector3(0, 1, 0)), sunI: T.uniform(v0.sunI), ambI: T.uniform(v0.ambI), shadow: T.uniform(v0.shadow), soft: T.uniform(v0.soft),
+    ao: T.uniform(v0.ao), bevel: T.uniform(v0.bevel), sss: T.uniform(v0.sss), spec: T.uniform(v0.spec), exposure: T.uniform(v0.exposure),
   };
+  const sunDir = { az: v0.sunAz, el: v0.sunEl };
+  const aimSun = () => { const a = (sunDir.az * Math.PI) / 180, e = (sunDir.el * Math.PI) / 180; U.sun.value.set(Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)); };
+  aimSun();
 
   const m = new three.MeshBasicNodeMaterial();
   const inp = hook ? hook(T, three, U, m) : null;
@@ -389,10 +412,31 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     c = T.mix(c, deep, T.float(1).sub(tt).mul(U.grad).mul(T.float(1).sub(rowMask('water').mul(T.float(1).sub(side)))));
   }
 
-  // light: warm key from the upper left, cool fill in the shade, a little extra on tops
-  const L = T.normalize(T.vec3(-0.55, 0.78, 0.3));
-  const wrap = T.clamp(T.dot(N, L).mul(0.6).add(0.45), 0, 1);
-  const light = T.mix(U.fill, U.key, wrap).mul(T.mix(0.92, 1.08, T.smoothstep(0.5, 0.95, N.y)));
+  // ── light: a sun you can move; on the GPU view, soft shadows ray-marched through the heightfield and AO ──
+  const L = T.normalize(U.sun);
+  const Vd = T.normalize(T.cameraPosition.sub(T.positionWorld));
+  let sunVis = T.float(1), occ = T.float(1);
+  if (inp?.field) {
+    const F = inp.field, half = F.n / 2;
+    const P = T.positionWorld.div(U.voxel); // voxel units: a cell is one voxel wide
+    const p0 = T.vec3(P.x.add(half), P.y, P.z.add(half)).add(N.mul(0.04));
+    const hAt = (x, z) => F.h(T.floor(x), T.floor(z));
+    let res = T.float(1);
+    const jit = T.interleavedGradientNoise(T.screenCoordinate.xy).mul(0.4).add(0.8); // per-pixel step jitter: noise, not streaks
+    for (let i = 1; i <= 22; i++) {
+      const t = jit.mul(0.35 + i * 0.85 + i * i * 0.07); // steps grow: crisp contact shadows, long mountain ones
+      const sp = p0.add(L.mul(t));
+      res = T.min(res, sp.y.sub(hAt(sp.x, sp.z)).mul(U.soft).div(t));
+    }
+    sunVis = T.smoothstep(0, 1, T.clamp(res, 0, 1));
+    const b0 = p0.xz.add(N.xz.mul(0.6));
+    let o = T.float(0), cnt = 0;
+    for (const r of [1.25, 3.5]) for (let k = 0; k < 8; k++) {
+      const a = ((k + (r > 2 ? 0.5 : 0)) * Math.PI) / 4;
+      o = o.add(T.clamp(hAt(b0.x.add(Math.cos(a) * r), b0.y.add(Math.sin(a) * r)).sub(P.y).div(r * 1.3), 0, 1)); cnt++;
+    }
+    occ = T.float(1).sub(o.div(cnt).mul(U.ao));
+  }
 
   // water: waves, sky reflection, sun glints and shore foam (after the original's water shader)
   const waterTop = rowMask('water').mul(T.float(1).sub(side)).mul(U.water);
@@ -426,18 +470,42 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
   // strata: a fine dark line between bands, also faded with distance
   const bandLine = T.smoothstep(T.float(1).sub(w.y.mul(1.5)).sub(0.02), 1, T.fract(level.add(T.fract(q.y)).div(U.band))).mul(isCut).mul(edgeFade);
 
-  let lit = c.mul(light).mul(edge).mul(T.float(1).sub(bandLine.mul(0.25)));
+  // bevelled voxels: near each voxel edge the normal rolls toward it, so every cube reads as soft rounded clay
+  const fs = T.fract(q).sub(0.5), bw = T.max(U.bevel.mul(0.26), 0.001);
+  const roll = (fa, na) => T.smoothstep(T.float(0.5).sub(bw), 0.5, T.abs(fa)).mul(T.sign(fa)).mul(T.abs(na).oneMinus());
+  const Nb = T.normalize(N.add(T.vec3(roll(fs.x, N.x), roll(fs.y, N.y), roll(fs.z, N.z)).mul(T.step(0.001, U.bevel).mul(edgeFade).mul(T.float(1).sub(waterTop)).mul(1.4))));
+
+  // diffuse: sun (wrapped by the subsurface amount, shadowed) + a sky/ground hemisphere (occluded)
+  const ndl = T.dot(Nb, L), wrapW = U.sss.mul(0.6);
+  const diff = T.clamp(ndl.add(wrapW).div(wrapW.add(1)), 0, 1), lam = T.max(ndl, 0);
+  const shade = T.mix(1, sunVis, U.shadow);
+  const hemi = T.mix(U.fill.mul(0.55).add(c.mul(0.22)), U.fill, Nb.y.mul(0.5).add(0.5)).mul(U.ambI).mul(occ);
+  let lit = c.mul(hemi.add(U.key.mul(U.sunI).mul(diff).mul(shade)));
+  // subsurface: the terminator glows in a deeper, saturated version of the surface colour (clay, wax)
+  lit = lit.add(U.key.mul(T.clamp(c.mul(c).mul(1.7), 0, 1)).mul(T.clamp(diff.sub(lam), 0, 1)).mul(U.sss).mul(0.7).mul(shade));
+  // specular: a broad clay sheen everywhere, a tight highlight and a sky reflection on glass towers
+  {
+    const glass = isBuilding.mul(T.step(0.84, Uv));
+    const nh = T.max(T.dot(Nb, T.normalize(L.add(Vd))), 0);
+    const fres = T.pow(T.float(1).sub(T.clamp(T.dot(Nb, Vd), 0, 1)), 5);
+    lit = lit.add(U.key.mul(T.mix(T.pow(nh, 16).mul(0.3), T.pow(nh, 220).mul(3), glass)).mul(U.spec).mul(shade));
+    lit = T.mix(lit, U.sky.mul(T.mix(0.7, 1.0, Nb.y.mul(0.5).add(0.5))), glass.mul(fres.mul(0.55).add(0.14)).mul(T.min(U.spec.mul(2.5), 1)));
+  }
+  lit = lit.mul(edge).mul(T.float(1).sub(bandLine.mul(0.25))).mul(T.mix(1, occ, 0.3));
   // studio sheen (a matcap-like soft highlight in view space, screen-blended) and a fresnel rim
   {
-    const nv = T.normalize(T.normalView);
+    const nv = T.normalize(T.transformNormalToView ? T.transformNormalToView(Nb) : T.normalView);
     const sh = T.smoothstep(0.35, 1.0, T.dot(nv, T.normalize(T.vec3(-0.62, 0.25, 0.75)))); // faces turned toward the camera's left
     lit = lit.add(T.float(1).sub(lit).mul(sh.mul(U.sheen).mul(0.45)));
-    const Vr = T.normalize(T.cameraPosition.sub(T.positionWorld));
-    const fr = T.pow(T.float(1).sub(T.clamp(T.dot(N, Vr), 0, 1)), 3);
+    const fr = T.pow(T.float(1).sub(T.clamp(T.dot(Nb, Vd), 0, 1)), 3);
     lit = lit.add(U.rimColor.mul(fr.mul(U.rim).mul(T.mix(0.2, 1, side)))); // mostly on walls: on tops it would wash the map
   }
   let out = T.mix(lit, c, T.clamp(unlit, 0, 1));
-  out = T.mix(out, water, waterTop); // water is lit by its own reflection, not the voxel light
+  // water keeps its own reflection model, darkened where buildings or hills shade it
+  out = T.mix(out, water.mul(T.mix(0.6, 1, shade)).mul(occ.mul(0.4).add(0.6)), waterTop);
+  // exposure and a soft highlight shoulder (keeps colours below the knee untouched)
+  out = out.mul(U.exposure);
+  out = T.mix(out, T.float(0.8).add(out.sub(0.8).div(out.sub(0.8).div(0.2).add(1))), T.step(0.8, out));
 
   // immersive: dissolve toward the background with distance from the centre (dithered, so no sorting issues)
   const k = T.smoothstep(U.fadeStart, 1, T.length(T.positionWorld.xz).div(U.fadeRadius)).mul(U.fade);
@@ -452,7 +520,8 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     uniforms: U,
     /** Live tweaks: any of styleUniformValues' keys, plus voxel, band, fade { radius, start } | null. */
     set(o) {
-      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint', 'hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'rim', 'sheen', 'top']) if (o[k2] != null) U[k2].value = +o[k2];
+      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint', 'hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'rim', 'sheen', 'top', 'sunI', 'ambI', 'shadow', 'soft', 'ao', 'bevel', 'sss', 'spec', 'exposure']) if (o[k2] != null) U[k2].value = +o[k2];
+      if (o.sunAz != null || o.sunEl != null) { if (o.sunAz != null) sunDir.az = +o.sunAz; if (o.sunEl != null) sunDir.el = +o.sunEl; aimSun(); }
       for (const k2 of ['key', 'fill', 'sky', 'background', 'windowColor', 'deep', 'rimColor']) if (o[k2]) setColor(U[k2], o[k2]);
       if (o.tints) o.tints.forEach((t, i) => { if (U.tints[i]) { setColor(U.tints[i].color, t.color); U.tints[i].amount.value = t.amount; } });
       if (o.fade !== undefined) { U.fade.value = o.fade ? 1 : 0; if (o.fade) { U.fadeRadius.value = o.fade.radius; U.fadeStart.value = o.fade.start ?? 0.55; } }

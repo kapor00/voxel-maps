@@ -442,15 +442,30 @@
       ], false));
 
       P.append(section('Light', [
+        grade('Sun angle', 'sunAz', -180, 180, 1, (v) => Math.round(v) + '°'),
+        grade('Sun height', 'sunEl', 3, 89, 1, (v) => Math.round(v) + '°'),
         keep(colorRow('Sun', () => S.fx.key, (v) => { S.fx.key = v; view?.setFx(S.fx); })),
-        keep(colorRow('Shade', () => S.fx.fill, (v) => { S.fx.fill = v; view?.setFx(S.fx); })),
+        grade('Sun power', 'sunI', 0, 2, 0.01, (v) => Math.round(v * 100) + '%'),
+        keep(colorRow('Sky', () => S.fx.fill, (v) => { S.fx.fill = v; view?.setFx(S.fx); })),
+        grade('Sky power', 'ambI', 0, 2, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Shadows', 'shadow', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Softness', 'soft', 1, 16, 0.1, (v) => (17 - v).toFixed(1)),
+        grade('Occlusion', 'ao', 0, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Exposure', 'exposure', 0.5, 1.8, 0.01, (v) => v.toFixed(2)),
+        grade('Windows', 'windows', 0, 0.6, 0.01, (v) => Math.round(v * 100) + '%'),
+        keep(toggle('Glow roads', () => S.fx.glow > 0, (v) => { S.fx.glow = v ? 1 : 0; view?.setFx(S.fx); })),
+      ]));
+
+      // Materials: the clay: rounded voxels, subsurface, sheen, a gradient down every wall, a fresnel rim
+      P.append(section('Materials', [
+        grade('Bevel', 'bevel', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Subsurface', 'sss', 0, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
+        grade('Specular', 'spec', 0, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
         grade('Gradient', 'grad', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
         keep(colorRow('Depth', () => S.fx.deep, (v) => { S.fx.deep = v; view?.setFx(S.fx); })),
         grade('Rim', 'rim', 0, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
         keep(colorRow('Rim colour', () => S.fx.rimColor, (v) => { S.fx.rimColor = v; view?.setFx(S.fx); })),
         grade('Sheen', 'sheen', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
-        grade('Windows', 'windows', 0, 0.6, 0.01, (v) => Math.round(v * 100) + '%'),
-        keep(toggle('Glow roads', () => S.fx.glow > 0, (v) => { S.fx.glow = v ? 1 : 0; view?.setFx(S.fx); })),
       ]));
 
       P.append(section('Camera', [

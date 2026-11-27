@@ -120,6 +120,12 @@ export async function createPlaceView(spline, o) {
           return { t, h, isB, isW, road, cover, isT, bldM, bid: B(b.x), depth: b.y };
         };
         const inside = (x, z) => T.step(0, x).mul(T.step(x, n - 1)).mul(T.step(G.z0, z)).mul(T.step(z, G.z0.add(G.rows).sub(1)));
+        // the heightfield for the fragment stage (sun shadows, AO): column top in voxels, 0 outside the visible window
+        const heightAt = (x, z) => {
+          const a = load(G.texA, x, z), terrM = B(a.x).mul(256).add(B(a.y)), bldM = B(a.z).mul(2), isB = T.step(0.5, bldM);
+          const t = G.base.add(T.round(T.max(terrM.sub(G.hmin), 0).div(G.cell).mul(G.exag)));
+          return t.add(isB.mul(T.max(1, T.round(bldM.div(G.cell).mul(G.exag))))).mul(inside(x, z));
+        };
         const C = column(cx, cz), own = inside(cx, cz);
         const nx = cx.add(T.round(nl.x)), nz = cz.add(T.round(nl.z)), nIn = inside(nx, nz), N2 = column(nx, nz);
         const nh = T.mix(T.mix(C.h, 0, G.crop), N2.h, nIn);
@@ -145,7 +151,7 @@ export async function createPlaceView(spline, o) {
         const wall = T.float(1).sub(T.step(0.5, T.normalWorld.y));
         const below = wall.mul(T.step(T.positionWorld.y, vTerr.sub(U.voxel.mul(0.02))));
         const v = T.mix(vRow, T.mix((ROW.land + 0.5) / ROW_COUNT, (ROW.cut + 0.5) / ROW_COUNT, T.step(0.5, vEdge)), below);
-        return { v, u: vU, g: T.varying(topV) }; // g: 0 at a wall's foot, 1 at its top (the clay gradient)
+        return { v, u: vU, g: T.varying(topV), field: { h: heightAt, n } }; // g: 0 at a wall's foot, 1 at its top (the clay gradient)
       },
     })
   );

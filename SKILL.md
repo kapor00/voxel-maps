@@ -138,7 +138,8 @@ above the ground, higher for tall places). Crop: `dist` 1.4–2.0, `pitch`
 
 `style` is one of `clay` (the default: Spline's toy look, candy colours that
 deepen toward violet at the foot of every wall, a pink rim, on black),
-`strata`, `model`, `night`, `snow`, `pastel`, `desert`, `autumn`,
+`claylight` (soft pale clay on lavender), `model` (a white architectural
+model with soft shadows), `strata`, `night`, `snow`, `pastel`, `desert`, `autumn`,
 `tropical`, `blueprint`, `neon`, `ink`. `n` is 256, 384 (default)
 or 512 cells across the window.
 
@@ -150,7 +151,9 @@ shows); `worldWidth` is the place's width in world units, whatever `n` is.
 area twice the window sits in two textures, and one fixed mesh holds a box
 per column whose height and colour the shader reads. So the viewer can drag
 the map inside the volume and change the shape and look in real time; when
-the window nears the edge of the data, the next area streams in.
+the window nears the edge of the data, the next area streams in. The same
+textures light it: soft sun shadows are ray-marched through the heightfield
+and occlusion is sampled from it every frame (about 90 fps at 1080p).
 
 **Moving around.** Drag the scene to move the map inside the volume (it
 streams more as you go), Alt- or right-drag to orbit, scroll to zoom, arrow
@@ -163,14 +166,17 @@ own sidebar, and every control applies live, with no Build button:
   theme that suits it), search (Enter; it geocodes once per search, never per
   keystroke), the window's centre, Size, Detail. Only these fetch new data.
 - Shape: Frame, Shape (aspect), Height, Slab, Vitrine, Trees: instant.
-- Theme: one click among 12. Colors: eight key swatches (ground, greens,
+- Theme: one click among 13. Colors: eight key swatches (ground, greens,
   water, roads, walls, roofs, strata, backdrop; each recolours its whole
   class, variants included) and hue, saturation, brightness, contrast,
   warmth, edges and tints. "Every colour" has each class's full palette.
-- Light: sun and shade; the clay lighting — Gradient (how deep each wall
-  runs toward its foot), Depth (the colour it deepens to), Rim and Rim
-  colour (a fresnel glow on the walls), Sheen (a soft studio highlight); lit
-  windows, glowing roads. Every theme has them; `clay` turns them up.
+- Light: Sun angle and Sun height (the shadows follow), Sun colour and
+  power, Sky colour and power, Shadows, Softness, Occlusion, Exposure, lit
+  windows, glowing roads.
+- Materials: Bevel (rounded voxels), Subsurface, Specular (clay sheen and
+  glossy glass towers), Gradient (how deep each wall runs toward its foot)
+  and its Depth colour, Rim and Rim colour (a fresnel glow), Sheen. Every
+  theme sets them; `clay` and `claylight` turn them up.
 - Water, Camera: waves, reflection, foam, glints, sky; orbit speed, distance
   and angle.
 - Export: Save .glb (exactly what's on screen, with the edited colours),
@@ -186,7 +192,7 @@ own sidebar, and every control applies live, with no Build button:
   .glb. The Public URL has no such sandbox.
 
 **Inline the builder.** Paste the contents of
-`scripts/place-scene.bundle.js` (57 KB) into a `<script>` just above the
+`scripts/place-scene.bundle.js` (62 KB) into a `<script>` just above the
 template's script; the loader uses it when it's there. The template's
 `BUNDLE` URL (jsDelivr) only works once this repository is public.
 
