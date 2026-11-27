@@ -74,7 +74,7 @@ export function theme(t) {
     label: t.label, background: t.background, frame: t.frame || shift(t.background, 0, -0.2, 0.55), pedestal: t.pedestal || shift(t.background, 0, 0, -0.03),
     fallback: t.ground, key: t.key || '#ffffff', fill: t.fill || '#6a6f9c', edge: t.edge ?? 0.8, sky: t.sky || '#cfe3f5',
     steps: ['building', 'roof'], tints: t.tints || [], glow: t.glow, windows: t.windows, water: t.waterFx === false ? false : undefined,
-    ...Object.fromEntries(['hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'deep', 'rim', 'rimColor', 'sheen'].filter((k) => t[k] != null).map((k) => [k, t[k]])),
+    ...Object.fromEntries(['hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'deep', 'rim', 'rimColor', 'sheen', 'sunAz', 'sunEl', 'sunI', 'ambI', 'shadow', 'soft', 'ao', 'bevel', 'sss', 'spec', 'exposure'].filter((k) => t[k] != null).map((k) => [k, t[k]])),
     rows: {
       cut: t.strata,
       land: [t.ground, mixHex(t.ground, t.high, 0.25), mixHex(t.ground, t.high, 0.5), mixHex(t.ground, t.high, 0.75), t.high, t.snow],
