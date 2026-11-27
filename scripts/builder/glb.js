@@ -9,6 +9,7 @@
    Plain ES module, no dependencies: runs in Node and in the browser. */
 
 import { ROWS, ROW_COUNT, paletteImage } from './styles.js';
+import { volumeOf, shapeAt } from './shapes.js';
 
 const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
 const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
@@ -56,13 +57,27 @@ export function placeMaterials(style) {
  * @param o.band strata band thickness in voxels · o.vitrine wireframe height ×, 0 = none · o.name root node name
  * @returns {{ glb: Uint8Array, vertices: number, objects: number, materials: string[] }}
  */
-export function placeToGLB(cols, style, { voxel = 1.2, frame = 'crop', aspect = 1, band = 3, vitrine = 1, name = 'Place' } = {}) {
-  const { n, terr, col, u, v } = cols;
+export function placeToGLB(cols, style, { voxel = 1.2, frame = 'crop', aspect = 1, width = 1, depth, shape = 'box', base, band = 3, vitrine = 1, name = 'Place' } = {}) {
+  const { n, u, v } = cols;
+  let { terr, col } = cols;
   const { M, wallOf, roofOf } = placeMaterials(style);
   const crop = frame === 'crop';
-  const rowsN = crop ? Math.max(8, Math.min(n, Math.round(n / Math.max(1, aspect)))) : n;
-  const zA = Math.floor((n - rowsN) / 2), zB = zA + rowsN;
-  const offX = (-n * voxel) / 2, offZ = -(zA + rowsN / 2) * voxel;
+  const V = crop ? volumeOf(n, { width, depth: depth ?? 1 / Math.max(1, aspect) }) : { x0: 0, cols: n, z0: 0, rows: n };
+  const shp = crop ? shape : 'box';
+  const rowsN = V.rows, zA = V.z0, zB = V.z0 + V.rows, xA = V.x0, xB = V.x0 + V.cols;
+  const offX = -(xA + V.cols / 2) * voxel, offZ = -(zA + rowsN / 2) * voxel;
+  const At = (x, z) => shapeAt(shp, x, z, V);
+  const IN = (x, z) => x >= xA && x < xB && z >= zA && z < zB && At(x, z).inside;
+  if (shp === 'island') {
+    // the island's land falls toward its coast, as in the live view
+    const b0 = base ?? Math.min(...terr);
+    terr = Uint16Array.from(terr); col = Uint16Array.from(col);
+    for (let z = zA; z < zB; z++) for (let x = xA; x < xB; x++) {
+      const k = z * n + x, a = At(x, z), e = a.edge, f = Math.min(1, Math.max(0, (e - a.r) / (e - e * 0.7)));
+      const fall = f * f * (3 - 2 * f), t2 = b0 + Math.round((terr[k] - b0) * fall), d = terr[k] - t2;
+      terr[k] = t2; col[k] = Math.max(t2, col[k] - d);
+    }
+  }
   const rowOf = (k) => ROWS[Math.min(ROWS.length - 1, Math.floor(v[k] * ROW_COUNT))];
   const COVER = { grass: 'Grass', wood: 'Forest', farmland: 'Fields', sand: 'Sand', rock: 'Rock', ice: 'Ice', wetland: 'Wetland' };
   const topOf = (k, r) => {
@@ -92,7 +107,8 @@ export function placeToGLB(cols, style, { voxel = 1.2, frame = 'crop', aspect = 
     else quad(m, [x0, a, z0], [x0, b, z0], [x1, b, z0], [x1, a, z0], [0, 0, -1], sLo, sHi);
   };
   const DX = [1, -1, 0, 0], DZ = [0, 0, 1, -1];
-  for (let z = zA; z < zB; z++) for (let x = 0; x < n; x++) {
+  for (let z = zA; z < zB; z++) for (let x = xA; x < xB; x++) {
+    if (!IN(x, z)) continue;
     const k = z * n + x, h = col[k], t = terr[k], r = rowOf(k);
     const x0 = offX + x * voxel, x1 = x0 + voxel, z0 = offZ + z * voxel, z1 = z0 + voxel, y = h * voxel;
     const jitter = r === 'water' ? 1 : r === 'building' ? 0.95 + 0.05 * hash2(x, z) : 0.9 + 0.1 * hash2(x, z);
@@ -101,7 +117,7 @@ export function placeToGLB(cols, style, { voxel = 1.2, frame = 'crop', aspect = 
     const upper = r === 'building' ? wallOf(u[k]) : r === 'tree' ? 'Trees' : r === 'water' ? 'Water · Deep' : 'Ground · Sides';
     for (let s = 0; s < 4; s++) {
       const nx = x + DX[s], nz = z + DZ[s];
-      if (nx < 0 || nx >= n || nz < zA || nz >= zB) {
+      if (!IN(nx, nz)) {
         if (!crop) continue;
         // the cut: strata bands up to the ground (water on top where a river meets the edge), then what stands on it
         const wl = r === 'water' ? Math.max(0, t - 2) : t;
@@ -120,7 +136,7 @@ export function placeToGLB(cols, style, { voxel = 1.2, frame = 'crop', aspect = 
   }
 
   // pedestal and vitrine (crop only), as boxes
-  const W = n * voxel, D = rowsN * voxel;
+  const W = V.cols * voxel, D = rowsN * voxel;
   let H = 0;
   for (let k = 0; k < n * n; k++) if (col[k] > H) H = col[k];
   H *= voxel;
@@ -133,7 +149,7 @@ export function placeToGLB(cols, style, { voxel = 1.2, frame = 'crop', aspect = 
     quad(m, [X1, Y0, Z1], [X1, Y1, Z1], [X0, Y1, Z1], [X0, Y0, Z1], [0, 0, 1], shade, shade);
     quad(m, [X0, Y0, Z0], [X0, Y1, Z0], [X1, Y1, Z0], [X1, Y0, Z0], [0, 0, -1], shade, shade);
   };
-  if (crop) {
+  if (crop && shp === 'box') {
     box('Pedestal', 0, -W * 0.015, 0, W * 1.002, W * 0.03, D * 1.002);
     if (vitrine > 0) {
       const h = Math.max(H * 1.15, W * 0.4) * vitrine, t = Math.max(0.35, W * 0.001), hx = W / 2, hz = D / 2;

@@ -165,7 +165,8 @@ own sidebar, and every control applies live, with no Build button:
 - Location: featured places (17 cities, coasts and landscapes, each with a
   theme that suits it), search (Enter; it geocodes once per search, never per
   keystroke), the window's centre, Size, Detail. Only these fetch new data.
-- Shape: Frame, Shape (aspect), Height, Slab, Vitrine, Trees: instant.
+- Shape: Frame (Crop / Immersive), Volume (Box, Cylinder, Dome, Island,
+  Hexagon), Width X, Height Y, Depth Z, Slab, Vitrine, Trees: instant.
 - Theme: one click among 13. Colors: eight key swatches (ground, greens,
   water, roads, walls, roofs, strata, backdrop; each recolours its whole
   class, variants included) and hue, saturation, brightness, contrast,
@@ -177,8 +178,9 @@ own sidebar, and every control applies live, with no Build button:
   glossy glass towers), Gradient (how deep each wall runs toward its foot)
   and its Depth colour, Rim and Rim colour (a fresnel glow), Sheen. Every
   theme sets them; `clay` and `claylight` turn them up.
-- Water, Camera: waves, reflection, foam, glints, sky; orbit speed, distance
-  and angle.
+- Water: waves, reflection, foam, glints, sky.
+- Camera: orbit, FOV (a lens on the voxels, since a scene script can't set
+  the camera's own FOV), speed, distance, angle, turn.
 - Export: Save .glb (exactly what's on screen, with the edited colours),
   Copy link (`?place=lat,lon,km&style=&frame=`, which the scene reads on
   load), Copy settings (the PLACE and ORBIT lines for this look: ask the user

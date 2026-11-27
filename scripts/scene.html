@@ -14,80 +14,94 @@
     #pt-drag { position: fixed; inset: 0; z-index: 1; cursor: grab; touch-action: none; }
     #pt-drag.dragging { cursor: grabbing; }
 
-    /* ── the panel: Spline's own right-sidebar look (shared/ui variables.css) ── */
-    #pt { --bg: #1e1e1e; --el1: rgba(255, 255, 255, .03); --el2: rgba(255, 255, 255, .05); --el3: rgba(255, 255, 255, .09);
-      --t1: rgba(255, 255, 255, .92); --t2: rgba(255, 255, 255, .7); --t3: rgba(255, 255, 255, .52); --line: rgba(255, 255, 255, .06); --blue: #2b99ff;
-      position: fixed; right: 12px; top: 12px; width: 256px; max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box; z-index: 3;
-      background: var(--bg); color: var(--t1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .04);
-      font: 11px/1.3 'Spline Sans', Inter, system-ui, -apple-system, sans-serif; user-select: none; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+    /* ── the panel: Spline's own right sidebar (shared/ui tokens: bg-panel, elevation-1…4, text-*, accent blue) ── */
+    #pt { --bg: #1e1e1e; --el1: rgba(255, 255, 255, .03); --el2: rgba(255, 255, 255, .05); --el3: rgba(255, 255, 255, .08); --el4: rgba(255, 255, 255, .12);
+      --t1: rgba(255, 255, 255, .92); --t2: rgba(255, 255, 255, .7); --t3: rgba(255, 255, 255, .52); --line: rgba(255, 255, 255, .05); --blue: #2b99ff;
+      position: fixed; right: 12px; top: 12px; width: 276px; max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box; z-index: 3;
+      background: var(--bg); color: var(--t1); border-radius: 14px; box-shadow: 0 12px 36px rgba(0, 0, 0, .38), inset 0 0 0 1px rgba(255, 255, 255, .05);
+      font: 500 11px/16px 'Spline Sans', Inter, system-ui, -apple-system, sans-serif; letter-spacing: .3px; user-select: none; scrollbar-width: none; }
+    #pt::-webkit-scrollbar { display: none; }
     #pt[hidden] { display: none; }
     #pt * { box-sizing: border-box; }
-    #pt .top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; position: sticky; top: 0; background: var(--bg); z-index: 2; }
-    #pt .top b { font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #pt .top .tag { color: var(--t3); background: var(--el2); border-radius: 4px; padding: 2px 6px; font-size: 10px; }
-    #pt .icon { all: unset; cursor: pointer; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 5px; color: var(--t2); }
-    #pt .icon:hover { background: var(--el2); color: var(--t1); }
+    #pt .top { display: flex; align-items: center; gap: 8px; padding: 12px 12px 10px 14px; position: sticky; top: 0; background: var(--bg); z-index: 2; }
+    #pt .top b { font-size: 12px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #pt .top .tag { color: var(--t2); background: var(--el2); border-radius: 6px; padding: 3px 7px; font-size: 10px; }
+    #pt .icon { all: unset; cursor: pointer; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: var(--t2); }
+    #pt .icon:hover { background: var(--el3); color: var(--t1); }
     #pt .sec { border-top: 1px solid var(--line); }
-    #pt .sec > h3 { margin: 0; padding: 10px 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-    #pt .sec > h3::after { content: ''; width: 6px; height: 6px; border-right: 1.5px solid var(--t3); border-bottom: 1.5px solid var(--t3); transform: rotate(45deg) translate(-2px, -2px); transition: transform .15s; }
-    #pt .sec.closed > h3::after { transform: rotate(-45deg); }
-    #pt .sec .body { padding: 0 12px 10px; display: grid; gap: 4px; }
+    #pt .sec > h3 { margin: 0; padding: 10px 12px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--t1); }
+    #pt .sec > h3 .tile { width: 28px; height: 28px; border-radius: 8px; background: var(--el2); display: grid; place-items: center; color: var(--t2); flex: none; }
+    #pt .sec > h3 .tile svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+    #pt .sec > h3 .chev { margin-left: auto; width: 14px; height: 14px; color: var(--t3); transition: transform .2s ease-in-out; }
+    #pt .sec.closed > h3 .chev { transform: rotate(-90deg); }
+    #pt .sec .body { padding: 2px 12px 12px; display: grid; gap: 6px; }
     #pt .sec.closed .body { display: none; }
-    #pt .sub { color: var(--t3); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin: 6px 0 2px; }
-    #pt .row { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 8px; min-height: 26px; }
-    #pt .row > span { color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #pt .ctl { display: flex; gap: 6px; align-items: center; min-width: 0; }
-    #pt .box { background: var(--el2); border-radius: 6px; height: 24px; display: flex; align-items: center; padding: 0 7px; min-width: 0; }
+    #pt .sub { color: var(--t3); font-size: 10px; letter-spacing: .6px; text-transform: uppercase; margin: 6px 0 0; }
+    #pt .row { display: grid; grid-template-columns: 66px 1fr; align-items: center; gap: 8px; min-height: 26px; }
+    #pt .row > span { color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #pt .row > span i { font-style: normal; color: var(--t3); margin-left: 3px; }
+    #pt .ctl { display: flex; gap: 4px; align-items: center; min-width: 0; }
+    #pt .box { background: var(--el2); border-radius: 6px; height: 26px; display: flex; align-items: center; padding: 0 8px; min-width: 0; }
+    #pt .box:hover { background: var(--el3); }
     #pt .box:focus-within { box-shadow: inset 0 0 0 1px var(--blue); }
     #pt input.num, #pt input.txt { all: unset; width: 100%; color: var(--t1); font: inherit; font-variant-numeric: tabular-nums; cursor: text; }
-    #pt .num-box { width: 52px; flex: none; cursor: ew-resize; }
-    #pt .num-box input { text-align: right; }
-    #pt input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 24px; background: transparent; margin: 0; cursor: pointer; }
-    #pt input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: linear-gradient(var(--blue), var(--blue)) 0/var(--p, 50%) 100% no-repeat, var(--el3); }
-    #pt input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: #fff; margin-top: -4px; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
-    #pt input[type=range]::-moz-range-track { height: 3px; border-radius: 2px; background: var(--el3); }
-    #pt input[type=range]::-moz-range-progress { height: 3px; border-radius: 2px; background: var(--blue); }
-    #pt input[type=range]::-moz-range-thumb { width: 11px; height: 11px; border: 0; border-radius: 50%; background: #fff; }
-    #pt .seg { display: flex; background: var(--el2); border-radius: 6px; padding: 2px; gap: 2px; flex: 1; }
-    #pt .seg button { all: unset; flex: 1; text-align: center; height: 20px; line-height: 20px; border-radius: 4px; color: var(--t2); cursor: pointer; white-space: nowrap; }
-    #pt .seg button.on { background: var(--el3); color: var(--t1); box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
-    #pt select { all: unset; flex: 1; min-width: 0; background: var(--el2); border-radius: 6px; height: 26px; padding: 0 22px 0 8px; color: var(--t1); cursor: pointer;
-      background-image: linear-gradient(45deg, transparent 50%, var(--t3) 50%), linear-gradient(135deg, var(--t3) 50%, transparent 50%);
-      background-position: calc(100% - 12px) 11px, calc(100% - 8px) 11px; background-size: 4px 4px; background-repeat: no-repeat; }
-    #pt .toggle { all: unset; width: 26px; height: 15px; border-radius: 8px; background: var(--el3); position: relative; cursor: pointer; transition: background .15s; }
-    #pt .toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: left .15s; }
+    #pt .num-box { width: 56px; flex: none; cursor: ew-resize; }
+    /* the slider: a dark track with a grey pill thumb, like Spline's */
+    #pt .track { position: relative; flex: 1; min-width: 0; height: 26px; border-radius: 6px; background: var(--el2); }
+    #pt .track:hover { background: var(--el3); }
+    #pt .track .thumb { position: absolute; top: 3px; width: 12px; height: 20px; border-radius: 4px; background: rgba(255, 255, 255, .26);
+      left: calc(3px + var(--p, .5) * (100% - 18px)); pointer-events: none; transition: background .15s; }
+    #pt .track:hover .thumb { background: rgba(255, 255, 255, .4); }
+    #pt .track input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+    #pt .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; flex: 1; }
+    #pt .seg button { all: unset; text-align: center; height: 26px; line-height: 26px; border-radius: 6px; color: var(--t2); background: var(--el2); cursor: pointer; white-space: nowrap; }
+    #pt .seg button:hover { background: var(--el3); color: var(--t1); }
+    #pt .seg button.on { background: var(--el4); color: var(--t1); }
+    #pt .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    #pt .cards button { all: unset; display: flex; align-items: center; justify-content: center; gap: 7px; height: 34px; border-radius: 8px; background: var(--el2); color: var(--t2); cursor: pointer; }
+    #pt .cards button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.3; }
+    #pt .cards button:hover { background: var(--el3); }
+    #pt .cards button.on { background: transparent; color: var(--t1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+    #pt .sel { position: relative; flex: 1; min-width: 0; }
+    #pt .sel select { all: unset; width: 100%; box-sizing: border-box; background: var(--el2); border-radius: 6px; height: 26px; line-height: 26px; padding: 0 24px 0 8px; color: var(--t1); cursor: pointer; }
+    #pt .sel select:hover { background: var(--el3); }
+    #pt .sel::after { content: ''; position: absolute; right: 10px; top: 9px; width: 5px; height: 5px; border-right: 1.3px solid var(--t2); border-bottom: 1.3px solid var(--t2); transform: rotate(45deg); pointer-events: none; }
+    #pt .toggle { all: unset; width: 30px; height: 18px; border-radius: 9px; background: var(--el4); position: relative; cursor: pointer; transition: background .2s; margin-left: auto; }
+    #pt .toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .2s ease-in-out; }
     #pt .toggle.on { background: var(--blue); }
-    #pt .toggle.on::after { left: 13px; }
-    #pt .swatches { display: flex; gap: 3px; flex-wrap: wrap; }
-    #pt .sw { position: relative; width: 18px; height: 18px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); cursor: pointer; overflow: hidden; flex: none; }
+    #pt .toggle.on::after { left: 14px; }
+    #pt .swatches { display: flex; gap: 4px; flex-wrap: wrap; }
+    #pt .sw { position: relative; width: 18px; height: 18px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); cursor: pointer; overflow: hidden; flex: none; }
     #pt .sw input { position: absolute; inset: -6px; width: 30px; height: 30px; opacity: 0; cursor: pointer; }
-    #pt .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 4px; }
-    #pt .key { display: grid; justify-items: center; gap: 3px; color: var(--t3); font-size: 10px; }
-    #pt .key .sw { width: 100%; height: 26px; border-radius: 6px; }
-    #pt .themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-    #pt .theme { all: unset; cursor: pointer; border-radius: 7px; padding: 5px; background: var(--el1); display: grid; gap: 4px; box-shadow: inset 0 0 0 1px transparent; }
-    #pt .theme:hover { background: var(--el2); }
-    #pt .theme.on { box-shadow: inset 0 0 0 1.5px var(--blue); background: var(--el2); }
-    #pt .theme .dots { display: flex; height: 16px; border-radius: 4px; overflow: hidden; }
-    #pt .theme .dots i { flex: 1; }
-    #pt .theme span { color: var(--t2); font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #pt .btn { all: unset; height: 28px; border-radius: 7px; background: var(--el2); color: var(--t1); text-align: center; cursor: pointer; flex: 1; font-weight: 500; }
+    /* colour fields: a chip and a name, like Spline's colour assets */
+    #pt .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    #pt .key { position: relative; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 6px; background: var(--el2); color: var(--t1); cursor: pointer; }
+    #pt .key:hover { background: var(--el3); }
+    #pt .key .chip { width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); flex: none; }
+    #pt .key input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    /* themes: a list, each with a round swatch of its colours */
+    #pt .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    #pt .theme { all: unset; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 6px; background: var(--el2); color: var(--t2); cursor: pointer; white-space: nowrap; overflow: hidden; }
+    #pt .theme:hover { background: var(--el3); color: var(--t1); }
+    #pt .theme.on { background: var(--el3); color: var(--t1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+    #pt .theme .dot3 { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
+    #pt .btn { all: unset; height: 28px; border-radius: 6px; background: var(--el2); color: var(--t1); text-align: center; cursor: pointer; flex: 1; }
     #pt .btn:hover { background: var(--el3); }
     #pt .btn.primary { background: var(--blue); color: #fff; }
     #pt .btn.primary:hover { filter: brightness(1.08); }
-    #pt .btn.small { height: 24px; flex: none; padding: 0 8px; }
-    #pt .btns { display: flex; gap: 6px; }
+    #pt .btn.small { height: 26px; flex: none; padding: 0 10px; }
+    #pt .btns { display: flex; gap: 4px; }
     #pt .search .box { height: 28px; }
     #pt .search svg { flex: none; margin-right: 6px; opacity: .55; }
     #pt .results { display: grid; gap: 1px; margin-top: 4px; }
     #pt .results:empty { display: none; }
     #pt .results button { all: unset; cursor: pointer; padding: 6px 8px; border-radius: 6px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #pt .results button:hover { background: var(--el2); color: var(--t1); }
+    #pt .results button:hover { background: var(--el3); color: var(--t1); }
     #pt .coords { color: var(--t3); font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
     #pt .muted { color: var(--t3); }
-    #pt .stats { padding: 8px 12px 12px; color: var(--t3); border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
-    #pt .dot { width: 6px; height: 6px; border-radius: 50%; background: #3ecf6e; display: inline-block; margin-right: 6px; vertical-align: 1px; }
-    #pt .dot.busy { background: #ffb020; }
+    #pt .stats { padding: 10px 14px 12px; color: var(--t3); border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
+    #pt .dot { width: 6px; height: 6px; border-radius: 50%; background: #1cc294; display: inline-block; margin-right: 6px; vertical-align: 1px; }
+    #pt .dot.busy { background: #ffc855; }
     #pt-open { position: fixed; right: 12px; top: 12px; width: 32px; height: 32px; border-radius: 9px; background: #1e1e1e; color: rgba(255, 255, 255, .8); border: 0;
       display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); z-index: 3; }
     #pt-open[hidden] { display: none; }
@@ -136,6 +150,7 @@
     let SP, look, view = null, orbit = null, backdrop = null;
     const S = {
       exag: PLACE.exag, trees: PLACE.trees !== false, aspect: PLACE.aspect ?? 1, vitrine: PLACE.vitrine ?? 1,
+      width: PLACE.width ?? 1, depth: PLACE.depth ?? 1 / Math.max(1, PLACE.aspect ?? 1), shape: PLACE.shape || 'box', fov: PLACE.fov ?? 45,
       slab: PLACE.base ? Math.round((PLACE.base / (PLACE.n || 384)) * 100) : 6, fx: {},
     };
     const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -153,7 +168,7 @@
         const old = view;
         const next = await SP.createPlaceView(spline, {
           lat: PLACE.lat, lon: PLACE.lon, name: PLACE.name, sizeM: PLACE.sizeM, n: PLACE.n || 384, look,
-          frame: PLACE.frame, aspect: S.aspect, exag: S.exag, slab: S.slab, trees: S.trees, vitrine: S.vitrine,
+          frame: PLACE.frame, width: S.width, depth: S.depth, shape: S.shape, fov: S.fov, exag: S.exag, slab: S.slab, trees: S.trees, vitrine: S.vitrine,
           worldWidth: SCENE.worldWidth, onStatus: status, onCenter: showCenter,
         });
         await old?.dispose(); // after: the new place is up before the old one goes, so nothing flashes
@@ -204,7 +219,7 @@
       const c = view.center(), n = PLACE.n || 384, q = (v) => `'${String(v).replace(/'/g, "'\\''")}'`;
       const parts = ['node scripts/export-glb.mjs', `--lat ${c.lat.toFixed(5)}`, `--lon ${c.lon.toFixed(5)}`, `--name ${q((PLACE.name || 'Place').split(',')[0])}`,
         `--size ${Math.round(PLACE.sizeM)}`, `--n ${n}`, `--style ${PLACE.style || 'strata'}`, `--frame ${PLACE.frame || 'crop'}`,
-        `--aspect ${S.aspect}`, `--vitrine ${S.vitrine}`, `--slab ${S.slab}`];
+        `--vol-x ${S.width}`, `--vol-z ${S.depth}`, `--shape ${S.shape}`, `--vitrine ${S.vitrine}`, `--slab ${S.slab}`];
       if (S.exag != null) parts.push(`--exag ${S.exag}`);
       const d = lookDiff(); if (d) parts.push(`--look ${q(JSON.stringify(d))}`);
       if (!S.trees) parts.push('--no-trees');
@@ -250,16 +265,31 @@
     // ── panel widgets ──
     const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
     const row = (label, ...kids) => { const r = el('div', 'row'); r.append(el('span', '', label)); const c = el('div', 'ctl'); c.append(...kids); r.append(c); return r; };
-    function slider(label, { min, max, step, get, set, fmt = (v) => v, live = true }) {
-      const r = el('input'); r.type = 'range'; Object.assign(r, { min, max, step });
+    const ICONS = {
+      location: '<path d="M8 14s-4.5-4.2-4.5-7.6a4.5 4.5 0 0 1 9 0C12.5 9.8 8 14 8 14z"/><circle cx="8" cy="6.4" r="1.6"/>',
+      shape: '<path d="M8 1.8 13.5 5v6L8 14.2 2.5 11V5z"/><path d="M2.5 5 8 8.2 13.5 5M8 8.2v6"/>',
+      theme: '<circle cx="5.6" cy="6" r="2.6"/><circle cx="10.4" cy="6" r="2.6"/><circle cx="8" cy="10.4" r="2.6"/>',
+      colors: '<path d="M8 2s4.5 4.8 4.5 8a4.5 4.5 0 0 1-9 0C3.5 6.8 8 2 8 2z"/>',
+      palette: '<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="9" width="4.5" height="4.5" rx="1.2"/>',
+      water: '<path d="M2 6c2-1.6 4-1.6 6 0s4 1.6 6 0M2 10.5c2-1.6 4-1.6 6 0s4 1.6 6 0"/>',
+      light: '<circle cx="8" cy="8" r="2.8"/><path d="M8 1.6v1.5M8 12.9v1.5M1.6 8h1.5M12.9 8h1.5M3.5 3.5l1 1M11.5 11.5l1 1M3.5 12.5l1-1M11.5 4.5l1-1"/>',
+      materials: '<circle cx="8" cy="8" r="5.6"/><path d="M5.3 6.1a3.1 3.1 0 0 1 2.5-1.9"/>',
+      camera: '<path d="M2.4 5.4h2.3L6 3.8h4l1.3 1.6h2.3v6.8H2.4z"/><circle cx="8" cy="8.7" r="2.2"/>',
+      export: '<path d="M8 10V2.6M5.2 5.4 8 2.6l2.8 2.8M3 9.6v3.8h10V9.6"/>',
+      crop: '<rect x="3" y="3" width="10" height="10" rx="1.5"/>',
+      immersive: '<circle cx="8" cy="8" r="5" stroke-dasharray="2 1.6"/>',
+    };
+    const svg = (k) => `<svg viewBox="0 0 16 16">${ICONS[k] || ''}</svg>`;
+    // a Spline field: the number box, then a dark track with a pill thumb (scrub the number box sideways, or type)
+    function slider(label, { min, max, step, get, set, fmt = (v) => v, live = true, axis }) {
       const b = el('div', 'box num-box'), n = el('input', 'num'); b.append(n);
-      const fill = (v) => r.style.setProperty('--p', ((v - min) / (max - min)) * 100 + '%');
+      const t = el('div', 'track'), th = el('div', 'thumb'), r = el('input'); r.type = 'range'; Object.assign(r, { min, max, step }); t.append(th, r);
+      const fill = (v) => t.style.setProperty('--p', Math.min(1, Math.max(0, (v - min) / (max - min))));
       const paint = () => { const v = get(); r.value = v; n.value = fmt(+v); fill(v); };
       const put = (v) => { if (!Number.isFinite(v)) return paint(); v = Math.min(max, Math.max(min, Math.round(v / step) * step)); set(+v.toFixed(4)); paint(); };
       if (live) r.addEventListener('input', () => put(+r.value));
       else { r.addEventListener('input', () => { n.value = fmt(+r.value); fill(+r.value); }); r.addEventListener('change', () => put(+r.value)); }
       n.addEventListener('change', () => put(parseFloat(n.value)));
-      // drag the number box sideways to scrub, like Spline's fields; a click types
       b.addEventListener('pointerdown', (e) => {
         if (document.activeElement === n) return;
         const x0 = e.clientX, v0 = +get(); let moved = false;
@@ -268,14 +298,29 @@
         addEventListener('pointermove', mv); addEventListener('pointerup', up); e.preventDefault();
       });
       paint();
-      const out = row(label, r, b); out.paint = paint; return out;
+      const out = row(axis ? `${label}<i>${axis}</i>` : label, b, t); out.paint = paint; return out;
     }
     function seg(label, options, get, set) {
       const s = el('div', 'seg');
       const paint = () => [...s.children].forEach((b) => b.classList.toggle('on', String(get()) === b.dataset.v));
       for (const [v, t] of options) { const b = el('button', '', t); b.dataset.v = String(v); b.onclick = () => { set(v); paint(); }; s.append(b); }
       paint();
-      const out = row(label, s); out.paint = paint; return out;
+      const out = label ? row(label, s) : s; out.paint = paint; return out;
+    }
+    // big option cards with an icon, like Spline's Physical | HDRi
+    function cards(options, get, set) {
+      const s = el('div', 'cards');
+      const paint = () => [...s.children].forEach((b) => b.classList.toggle('on', String(get()) === b.dataset.v));
+      for (const [v, t, ic] of options) { const b = el('button', '', svg(ic) + t); b.dataset.v = String(v); b.onclick = () => { set(v); paint(); }; s.append(b); }
+      paint(); s.paint = paint; return s;
+    }
+    function select(label, options, get, set) {
+      const w = el('div', 'sel'), sel = el('select');
+      sel.innerHTML = options.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+      sel.onchange = () => set(sel.value); w.append(sel);
+      const paint = () => (sel.value = String(get()));
+      paint();
+      const out = row(label, w); out.paint = paint; return out;
     }
     function toggle(label, get, set) {
       const t = el('button', 'toggle');
@@ -285,13 +330,11 @@
       const out = row(label, t); out.paint = paint; return out;
     }
     function colorRow(label, get, set) {
-      const w = el('label', 'sw'), i = el('input'); i.type = 'color';
-      const hex = el('div', 'box'), h = el('input', 'txt'); hex.append(h); hex.style.flex = '1';
-      const paint = () => { const v = get(); w.style.background = v; i.value = v; h.value = v.toUpperCase(); };
+      const k = el('label', 'key'), chip = el('span', 'chip'), txt = el('span'), i = el('input'); i.type = 'color';
+      const paint = () => { const v = get(); chip.style.background = v; i.value = v; txt.textContent = v.toUpperCase(); };
       i.addEventListener('input', () => { set(i.value); paint(); });
-      h.addEventListener('change', () => { if (/^#?[0-9a-f]{6}$/i.test(h.value)) set('#' + h.value.replace('#', '').toLowerCase()); paint(); });
-      w.append(i); paint();
-      const out = row(label, w, hex); out.paint = paint; return out;
+      k.append(chip, txt, i); paint();
+      const out = row(label, k); k.style.flex = '1'; out.paint = paint; return out;
     }
     function paletteRow(label, rowKey) {
       const s = el('div', 'swatches');
@@ -306,8 +349,9 @@
       paint();
       const out = row(label, s); out.paint = paint; return out;
     }
-    function section(title, kids, open = true) {
-      const s = el('div', 'sec' + (open ? '' : ' closed')), h = el('h3', '', title), b = el('div', 'body');
+    function section(title, icon, kids, open = true) {
+      const s = el('div', 'sec' + (open ? '' : ' closed')), b = el('div', 'body');
+      const h = el('h3', '', `<span class="tile">${svg(icon)}</span>${title}<svg class="chev" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4 5.5 7 8.5l3-3"/></svg>`);
       h.onclick = () => s.classList.toggle('closed');
       b.append(...kids); s.append(h, b); return s;
     }
@@ -335,7 +379,7 @@
       top.append(hide); P.append(top);
 
       // Location: featured places, search, where the window is now; size and detail fetch new data
-      const featured = el('select'); featured.id = 'ui-place';
+      const featuredBox = el('div', 'sel'), featured = el('select'); featured.id = 'ui-place'; featuredBox.append(featured);
       const groups = {};
       for (const p of SP.PLACES) (groups[p.group] ||= []).push(p);
       featured.innerHTML = '<option value="">Featured places…</option>' + Object.entries(groups).map(([g, ps]) => `<optgroup label="${g}">${ps.map((p) => `<option value="${p.name}">${p.name}</option>`).join('')}</optgroup>`).join('');
@@ -373,19 +417,21 @@
       const recenter = el('button', 'btn small', 'Recenter'); recenter.title = 'Back to the place you chose';
       recenter.onclick = () => reload();
       coords.append(recenter);
-      P.append(section('Location', [
-        row('Place', featured), search, coords,
+      P.append(section('Location', 'location', [
+        row('Place', featuredBox), search, coords,
         keep(slider('Size', { min: 0, max: 100, step: 1, live: false, get: () => mToSize(PLACE.sizeM || 4000), set: (v) => { PLACE.sizeM = sizeToM(v); reload(); }, fmt: (v) => (sizeToM(v) / 1000).toFixed(1) + ' km' })),
         keep(seg('Detail', [[256, '256'], [384, '384'], [512, '512']], () => PLACE.n || 384, (v) => { PLACE.n = v; reload(); })),
       ]));
 
-      // Shape: all live (uniforms; the vitrine's cubes follow)
+      // Shape: all live (uniforms; the pedestal and vitrine follow)
       const exagDefault = () => ((PLACE.sizeM || 4000) / (PLACE.n || 384) > 25 ? 1.6 : 1.2);
       const shape = (s) => view?.set(s);
-      P.append(section('Shape', [
-        keep(seg('Frame', [['crop', 'Crop'], ['immersive', 'Immersive']], () => PLACE.frame || 'crop', (v) => { PLACE.frame = v; shape({ frame: v }); orbit?.set({ dist: v === 'immersive' ? 0.6 : 1.45 }); repaint(); })),
-        keep(seg('Shape', [[1, '1 : 1'], [1.5, '3 : 2'], [2, '2 : 1']], () => S.aspect, (v) => { S.aspect = v; shape({ aspect: v }); })),
-        keep(slider('Height', { min: 0.3, max: 3, step: 0.1, get: () => S.exag ?? exagDefault(), set: (v) => { S.exag = v; shape({ exag: v }); }, fmt: (v) => v.toFixed(1) + '×' })),
+      P.append(section('Shape', 'shape', [
+        keep(cards([['crop', 'Crop', 'crop'], ['immersive', 'Immersive', 'immersive']], () => PLACE.frame || 'crop', (v) => { PLACE.frame = v; shape({ frame: v }); orbit?.set({ dist: v === 'immersive' ? 0.6 : 1.45 }); repaint(); })),
+        keep(select('Volume', SP.SHAPES.map((k) => [k, SP.SHAPE_LABELS[k]]), () => S.shape, (v) => { S.shape = v; shape({ shape: v }); })),
+        keep(slider('Width', { axis: 'X', min: 20, max: 100, step: 1, get: () => Math.round(S.width * 100), set: (v) => { S.width = v / 100; shape({ width: S.width }); }, fmt: (v) => v + '%' })),
+        keep(slider('Height', { axis: 'Y', min: 0.3, max: 3, step: 0.1, get: () => S.exag ?? exagDefault(), set: (v) => { S.exag = v; shape({ exag: v }); }, fmt: (v) => v.toFixed(1) + '×' })),
+        keep(slider('Depth', { axis: 'Z', min: 20, max: 100, step: 1, get: () => Math.round(S.depth * 100), set: (v) => { S.depth = v / 100; shape({ depth: S.depth }); }, fmt: (v) => v + '%' })),
         keep(slider('Slab', { min: 2, max: 20, step: 1, get: () => S.slab, set: (v) => { S.slab = v; shape({ slab: v }); }, fmt: (v) => v + '%' })),
         keep(slider('Vitrine', { min: 0, max: 2, step: 0.05, get: () => S.vitrine, set: (v) => { S.vitrine = v; shape({ vitrine: v }); }, fmt: (v) => v.toFixed(2) })),
         keep(toggle('Trees', () => S.trees, (v) => { S.trees = v; shape({ trees: v }); })),
@@ -393,10 +439,10 @@
 
       // Theme: one click; then a few key colours and global adjustments
       const themes = el('div', 'themes');
-      const dotsOf = (st) => [st.rows.land[1], st.rows.grass[0], st.rows.water[1] || st.rows.water[0], st.rows.roof[0], st.rows.cut[0]];
+      const dotOf = (st) => { const c = [st.rows.land[1], st.rows.roof[0], st.rows.water[1] || st.rows.water[0], st.rows.grass[0]]; return `conic-gradient(from 45deg, ${c[0]} 0 25%, ${c[1]} 0 50%, ${c[2]} 0 75%, ${c[3]} 0)`; };
       const paintThemes = () => [...themes.children].forEach((b) => b.classList.toggle('on', b.dataset.k === (PLACE.style || 'strata')));
       for (const [k, st] of Object.entries(SP.STYLES)) {
-        const b = el('button', 'theme', `<div class="dots" style="background:${st.background}">${dotsOf(st).map((c) => `<i style="background:${c}"></i>`).join('')}</div><span>${st.label}</span>`);
+        const b = el('button', 'theme', `<span class="dot3" style="background:${dotOf(st)}"></span><span>${st.label}</span>`);
         b.dataset.k = k; b.onclick = () => chooseTheme(k);
         themes.append(b);
       }
@@ -406,19 +452,19 @@
       repaintKeys = () => {
         keysBox.innerHTML = '';
         for (const [k, label] of KEYS) {
-          const wrap = el('label', 'key'), w = el('span', 'sw'), inp = el('input'); inp.type = 'color';
-          const c = SP.KEY_COLORS[k](look); inp.value = c; w.style.background = c; w.append(inp);
+          const wrap = el('label', 'key'), w = el('span', 'chip'), inp = el('input'); inp.type = 'color';
+          const c = SP.KEY_COLORS[k](look); inp.value = c; w.style.background = c;
           inp.addEventListener('input', () => { SP.recolor(look, k, inp.value); w.style.background = inp.value; applyLook(); paints.forEach((p) => p.isPal && p.paint()); });
           inp.addEventListener('change', () => { if (k === 'background') view?.restyleFrame(); });
-          wrap.append(w, el('span', '', label)); keysBox.append(wrap);
+          wrap.append(w, el('span', '', label), inp); keysBox.append(wrap);
         }
       };
       repaintKeys();
       const grade = (label, key, min, max, step, fmt) => keep(slider(label, { min, max, step, get: () => S.fx[key], set: (v) => { S.fx[key] = v; view?.setFx(S.fx); }, fmt }));
       const palRows = [['Ground', 'land'], ['Grass', 'grass'], ['Forest', 'wood'], ['Fields', 'farmland'], ['Water', 'water'], ['Roads', 'road'], ['Walls', 'building'], ['Roofs', 'roof'], ['Trees', 'tree'], ['Cliffs', 'side'], ['Strata', 'cut'], ['Rock', 'rock'], ['Sand', 'sand'], ['Snow', 'ice']];
       const pals = palRows.map(([l, k]) => { const r = keep(paletteRow(l, k)); r.isPal = true; return r; });
-      P.append(section('Theme', [themes]));
-      P.append(section('Colors', [
+      P.append(section('Theme', 'theme', [themes]));
+      P.append(section('Colors', 'colors', [
         keysBox,
         el('div', 'sub', 'Adjust'),
         grade('Hue', 'hue', -180, 180, 1, (v) => Math.round(v) + '°'),
@@ -430,9 +476,9 @@
         grade('Tints', 'tint', 0, 2, 0.05, (v) => v.toFixed(2)),
         (() => { const reset = el('button', 'btn small', 'Reset to theme'); reset.onclick = () => chooseTheme(PLACE.style || 'strata'); const r = row('', reset); return r; })(),
       ]));
-      P.append(section('Every colour', pals, false));
+      P.append(section('Every colour', 'palette', pals, false));
 
-      P.append(section('Water', [
+      P.append(section('Water', 'water', [
         keep(toggle('Effects', () => S.fx.water > 0, (v) => { S.fx.water = v ? 1 : 0; view?.setFx(S.fx); })),
         grade('Waves', 'waves', 0, 3, 0.05, (v) => v.toFixed(2)),
         grade('Reflection', 'reflect', 0, 2, 0.05, (v) => v.toFixed(2)),
@@ -441,7 +487,7 @@
         keep(colorRow('Sky', () => S.fx.sky, (v) => { S.fx.sky = v; view?.setFx(S.fx); })),
       ], false));
 
-      P.append(section('Light', [
+      P.append(section('Light', 'light', [
         grade('Sun angle', 'sunAz', -180, 180, 1, (v) => Math.round(v) + '°'),
         grade('Sun height', 'sunEl', 3, 89, 1, (v) => Math.round(v) + '°'),
         keep(colorRow('Sun', () => S.fx.key, (v) => { S.fx.key = v; view?.setFx(S.fx); })),
@@ -457,7 +503,7 @@
       ]));
 
       // Materials: the clay: rounded voxels, subsurface, sheen, a gradient down every wall, a fresnel rim
-      P.append(section('Materials', [
+      P.append(section('Materials', 'materials', [
         grade('Bevel', 'bevel', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
         grade('Subsurface', 'sss', 0, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
         grade('Specular', 'spec', 0, 1.5, 0.01, (v) => Math.round(v * 100) + '%'),
@@ -468,12 +514,14 @@
         grade('Sheen', 'sheen', 0, 1, 0.01, (v) => Math.round(v * 100) + '%'),
       ]));
 
-      P.append(section('Camera', [
+      P.append(section('Camera', 'camera', [
         keep(toggle('Orbit', () => (orbit?.state.speed || 0) > 0, (v) => orbit?.set({ speed: v ? ORBIT.speed || 5 : 0 }))),
+        keep(slider('FOV', { min: 15, max: 100, step: 1, get: () => S.fov, set: (v) => { S.fov = v; shape({ fov: v }); }, fmt: (v) => Math.round(v) + '°' })),
         keep(slider('Speed', { min: 0, max: 30, step: 0.5, get: () => orbit?.state.speed ?? 0, set: (v) => orbit?.set({ speed: v }), fmt: (v) => v + '°/s' })),
         keep(slider('Distance', { min: 0.25, max: 4, step: 0.05, get: () => orbit?.state.dist ?? 1.45, set: (v) => orbit?.set({ dist: v }), fmt: (v) => v.toFixed(2) })),
         keep(slider('Angle', { min: 5, max: 85, step: 1, get: () => orbit?.state.pitch ?? 27, set: (v) => orbit?.set({ pitch: v }), fmt: (v) => Math.round(v) + '°' })),
-      ], false));
+        keep(slider('Turn', { min: 0, max: 359, step: 1, get: () => Math.round((((orbit?.state.yaw ?? 205) % 360) + 360) % 360), set: (v) => orbit?.set({ yaw: v }), fmt: (v) => Math.round(v) + '°' })),
+      ]));
 
       // Export: the current snapshot (this window, these colours) as a .glb for the Spline editor
       const glb = el('button', 'btn primary', 'Save .glb'); glb.id = 'ui-glb';
@@ -510,12 +558,12 @@
       cfg.title = 'The PLACE and ORBIT lines for this scene, to paste into its HTML (or hand to your agent)';
       cfg.onclick = async () => {
         const c = view ? view.center() : PLACE, n = PLACE.n || 384;
-        const placeLine = { name: PLACE.name, lat: +c.lat.toFixed(5), lon: +c.lon.toFixed(5), sizeM: Math.round(PLACE.sizeM), n, style: PLACE.style, frame: PLACE.frame || 'crop', exag: S.exag, aspect: S.aspect, vitrine: S.vitrine, base: Math.round((n * S.slab) / 100), trees: S.trees };
+        const placeLine = { name: PLACE.name, lat: +c.lat.toFixed(5), lon: +c.lon.toFixed(5), sizeM: Math.round(PLACE.sizeM), n, style: PLACE.style, frame: PLACE.frame || 'crop', shape: S.shape, width: S.width, depth: S.depth, fov: S.fov, exag: S.exag, vitrine: S.vitrine, base: Math.round((n * S.slab) / 100), trees: S.trees };
         const orbitLine = { ...ORBIT, dist: +orbit.state.dist.toFixed(2), pitch: Math.round(orbit.state.pitch), yaw: Math.round(orbit.state.yaw % 360), speed: orbit.state.speed };
         await copyText(`const PLACE = ${JSON.stringify(placeLine)};\nconst ORBIT = ${JSON.stringify(orbitLine)};`, 'Settings');
       };
       const b1 = el('div', 'btns'), b2 = el('div', 'btns'); b1.append(glb); b2.append(link, cfg);
-      P.append(section('Export', [b1, b2]));
+      P.append(section('Export', 'export', [b1, b2]));
       const st = el('div', 'stats', '<span><i class="dot busy"></i>Loading…</span>'); st.id = 'pt-stats'; P.append(st);
       $('pt-title').textContent = (PLACE.name || 'Place').split(',')[0];
     }

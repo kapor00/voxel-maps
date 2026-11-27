@@ -5,3 +5,4 @@ export { placeToGLB, placeMaterials } from './glb.js';
 export { createPlaceView, createOrbit, createBackdrop } from './gpu-view.js';
 export { geocode } from '../geo/geocode.js';
 export { PLACES } from './places.js';
+export { SHAPES, SHAPE_LABELS, shapeAt, volumeOf } from './shapes.js';

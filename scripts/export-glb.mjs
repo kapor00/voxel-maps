@@ -6,7 +6,8 @@
 
    node scripts/export-glb.mjs "Budapest" | --lat 47.507 --lon 19.045 [--name Budapest]
         [--size 4000] [--n 384] [--style strata] [--frame crop|immersive]
-        [--slab 6] [--aspect 1] [--vitrine 1] [--exag 1.2] [--width 614] [--no-trees]
+        [--slab 6] [--vol-x 1] [--vol-z 1] [--shape box|cylinder|dome|island|hex]
+        [--vitrine 1] [--exag 1.2] [--width 614] [--no-trees]
         [--look '{"rows":{"roof":["#c55a3b",…]}}'] [--out budapest.glb]
 
    --look takes style overrides as JSON (what the scene panel's "Save .glb" hands you
@@ -42,7 +43,8 @@ const base = frame === 'crop' ? Math.max(4, Math.round((n * +flag('slab', 6)) / 
 const cols = placeColumns(pack, { exag: flag('exag') ? +flag('exag') : undefined, trees: !args.includes('--no-trees'), base });
 const t0 = Date.now();
 const { glb, vertices, objects, materials } = placeToGLB(cols, style, {
-  voxel, frame, aspect: +flag('aspect', 1), band: Math.max(2, Math.round(base / 5)), vitrine: +flag('vitrine', 1), name,
+  voxel, frame, aspect: +flag('aspect', 1), width: +flag('vol-x', 1), depth: flag('vol-z') != null ? +flag('vol-z') : undefined,
+  shape: flag('shape', 'box'), base, band: Math.max(2, Math.round(base / 5)), vitrine: +flag('vitrine', 1), name,
 });
 const out = path.resolve(flag('out', `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.glb`));
 fs.writeFileSync(out, glb);

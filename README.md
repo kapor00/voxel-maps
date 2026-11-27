@@ -69,13 +69,15 @@ you can **drag the map inside the volume** and keep going: the next area
 streams in as you near the edge. Alt-drag orbits, the wheel zooms.
 
 - **Location**: 17 featured places, search for any other, size and detail.
-- **Shape**: crop or immersive, proportions, height, slab, vitrine, trees.
+- **Shape**: crop or immersive; a Box, Cylinder, Dome, Island or Hexagon
+  volume; width X, height Y and depth Z; slab, vitrine, trees.
 - **Theme** and **Colors**: one click per theme; eight key swatches that
   recolour a whole class, plus hue, saturation, brightness, contrast, warmth.
 - **Light**: sun angle and height, sun and sky colour and power, shadows,
   softness, occlusion, exposure, lit windows, glowing roads.
 - **Materials**: bevel, subsurface, specular, the wall gradient and its
   depth colour, rim and sheen.
+- **Camera**: orbit, FOV, speed, distance, angle and turn.
 - **Export**: **Save .glb** (exactly what is on screen), **Copy link** and
   **Copy settings** (the lines that make your look the scene's default).
 
