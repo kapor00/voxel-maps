@@ -237,8 +237,7 @@
         // screen right = (cos, -sin) in x/z; screen up across the ground = (-sin, -cos); the map follows the pointer
         acc.x -= (Math.cos(th) * dxPix + Math.sin(th) * dyPix) * k;
         acc.z -= (-Math.sin(th) * dxPix + Math.cos(th) * dyPix) * k;
-        const ix = Math.trunc(acc.x), iz = Math.trunc(acc.z);
-        if (ix || iz) { view.pan(ix, iz); acc.x -= ix; acc.z -= iz; }
+        view.pan(acc.x, acc.z); acc.x = 0; acc.z = 0; // fractions of a cell too: the map slides smoothly
       };
       pad.addEventListener('pointerdown', (e) => {
         mode = e.button === 2 || e.altKey || e.shiftKey ? 'orbit' : 'pan'; x0 = e.clientX; y0 = e.clientY;

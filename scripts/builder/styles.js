@@ -346,6 +346,8 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
 
   const m = new three.MeshBasicNodeMaterial();
   const inp = hook ? hook(T, three, U, m) : null;
+  // where surface patterns are anchored: the map, which a pan slides by a fraction of a cell (GPU view)
+  const PW = inp?.shift ? T.positionWorld.add(inp.shift) : T.positionWorld;
   const N = T.normalize(T.normalWorld), v = inp?.v ?? T.uv().y, Uv = inp?.u ?? T.uv().x;
   const gWall = inp?.g ?? T.float(1); // 0 at the foot of a wall, 1 at its top (the GPU view knows; the CPU mesh doesn't)
   const rowMask = (name) => T.step(ROW[name] / ROW_COUNT, v).mul(T.float(1).sub(T.step((ROW[name] + 1) / ROW_COUNT, v)));
@@ -372,7 +374,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
 
   // regional tints on open ground tops, like the original's pale/rust/olive/rose patches
   {
-    const p = T.positionWorld.xz.div(U.voxel.mul(48));
+    const p = PW.xz.div(U.voxel.mul(48));
     const n1 = vnoise(p.add(T.vec2(31.4, 17.2))), n2 = vnoise(p.mul(0.63).add(T.vec2(5.1, 41.7)));
     const ground = isGround.mul(T.float(1).sub(side)).mul(T.float(1).sub(rowMask('wood'))).mul(U.tint);
     U.tints.forEach((t, i) => {
@@ -394,7 +396,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
 
   let unlit = rowMask('road').mul(U.glow);
   {
-    const cell = T.floor(T.positionWorld.div(U.voxel.div(3)));
+    const cell = T.floor(PW.div(U.voxel.div(3)));
     const lit = T.step(T.float(1).sub(U.windows), hash(T.dot(cell, T.vec3(1.0, 57.0, 113.0)))).mul(side).mul(isBuilding).mul(T.step(0.001, U.windows));
     c = T.mix(c, U.windowColor, lit);
     unlit = unlit.add(lit);
@@ -418,12 +420,12 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
   let sunVis = T.float(1), occ = T.float(1);
   if (inp?.field) {
     const F = inp.field, half = F.n / 2;
-    const P = T.positionWorld.div(U.voxel); // voxel units: a cell is one voxel wide
+    const P = PW.div(U.voxel); // voxel units: a cell is one voxel wide
     const p0 = T.vec3(P.x.add(half), P.y, P.z.add(half)).add(N.mul(0.04));
     const hAt = (x, z) => F.h(T.floor(x), T.floor(z));
     let res = T.float(1);
     // step jitter anchored to the surface (not the screen), so it doesn't crawl when the camera moves
-    const wq = T.floor(T.positionWorld.div(U.voxel.mul(0.125)));
+    const wq = T.floor(PW.div(U.voxel.mul(0.125)));
     const jit = T.fract(T.sin(T.dot(wq, T.vec3(12.9898, 78.233, 37.719))).mul(43758.5453)).mul(0.4).add(0.8);
     for (let i = 1; i <= 22; i++) {
       const t = jit.mul(0.35 + i * 0.85 + i * i * 0.07); // steps grow: crisp contact shadows, long mountain ones
@@ -445,7 +447,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
   let water;
   {
     const t = (T.time ?? T.float(0)).mul(U.waves.max(0.0001).sqrt());
-    const wp = T.positionWorld.xz.div(U.voxel.mul(5));
+    const wp = PW.xz.div(U.voxel.mul(5));
     const wave = (p) => vnoise(p.add(T.vec2(t.mul(0.32), t.mul(0.21)))).add(vnoise(p.mul(2.7).sub(T.vec2(t.mul(0.47), t.mul(-0.29)))).mul(0.5));
     const de = 0.12, h0 = wave(wp), hx = wave(wp.add(T.vec2(de, 0))), hz = wave(wp.add(T.vec2(0, de)));
     const amp = U.waves.mul(0.32);
@@ -454,16 +456,16 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     const fres = T.pow(T.float(1).sub(T.max(T.dot(Nw, V), 0)), 4);
     const H = T.normalize(L.add(V));
     const spec = T.pow(T.max(T.dot(Nw, H), 0), 160);
-    const glint = T.step(0.993, vnoise(T.positionWorld.xz.div(U.voxel.mul(0.7)).add(T.vec2(t.mul(1.3), t.mul(-0.9))))).mul(U.glints);
+    const glint = T.step(0.993, vnoise(PW.xz.div(U.voxel.mul(0.7)).add(T.vec2(t.mul(1.3), t.mul(-0.9))))).mul(U.glints);
     const shore = T.float(1).sub(T.smoothstep(0.0, 0.1, Uv));
-    const foam = shore.mul(T.smoothstep(0.45, 0.8, vnoise(T.positionWorld.xz.div(U.voxel.mul(1.2)).add(T.vec2(t.mul(0.15), 0))))).mul(U.foam);
+    const foam = shore.mul(T.smoothstep(0.45, 0.8, vnoise(PW.xz.div(U.voxel.mul(1.2)).add(T.vec2(t.mul(0.15), 0))))).mul(U.foam);
     water = T.mix(c, U.sky, T.min(fres.mul(0.55).mul(U.reflect), 0.7)).mul(T.mix(1, T.mix(0.9, 1.05, h0.mul(0.67)), T.min(U.waves, 1)));
     water = water.add(U.key.mul(spec.mul(1.6).mul(U.reflect).add(glint.mul(0.18))));
     water = T.mix(water, T.vec3(0.92, 0.97, 1.0), foam.mul(0.55));
   }
 
   // voxel edges, anti-aliased: thin dark seams that fade out once a voxel is only a few pixels on screen
-  const q = T.positionWorld.div(U.voxel), w = T.fwidth(q);
+  const q = PW.div(U.voxel), w = T.fwidth(q);
   const f = T.abs(T.fract(q).sub(0.5));
   const seam = (fa, wa, na) => T.smoothstep(T.float(0.5).sub(wa.mul(1.2)).sub(0.03), 0.5, fa).mul(T.abs(na).oneMinus());
   const e = T.max(T.max(seam(f.x, w.x, N.x), seam(f.y, w.y, N.y)), seam(f.z, w.z, N.z));

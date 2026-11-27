@@ -111,6 +111,7 @@ export async function createPlaceView(spline, o) {
           trees: T.uniform(P.trees ? 1 : 0), treeH: T.uniform(cellM <= 15 ? 1 : 0), crop: T.uniform(P.frame === 'crop' ? 1 : 0),
           z0: T.uniform(vol().z0), rows: T.uniform(vol().rows), x0: T.uniform(vol().x0), cols: T.uniform(vol().cols),
           shape: T.uniform(shapeOf()), domeK: T.uniform(domeK()), lens: T.uniform(lensOf()),
+          sub: T.uniform(new th.Vector2(0, 0)), // the pan's fraction of a cell: the map slides smoothly between whole cells
         };
         // the volume's shape at a cell: in or out, radius in the unit ellipse, the island's coast there
         const shapeAt = (x, z) => {
@@ -159,7 +160,15 @@ export async function createPlaceView(spline, o) {
         const hD = C.h.sub(C.sh.drop), nhD = T.mix(T.mix(hD, T.float(0).sub(C.sh.drop), G.crop), N2.h.sub(N2.sh.drop), nIn);
         const isTop = T.step(0.5, nl.y);
         const y = T.mix(T.min(hD, nhD), hD, T.max(topV, isTop));
-        m.positionNode = T.vec3(T.positionLocal.x, y.mul(U.voxel), T.positionLocal.z).mul(own);
+        // the map slides by the pan's fraction of a cell (cells are sampled at whole offsets); the volume's walls
+        // stay put: columns are clamped to the volume, and the last column stretches over the gap the slide opens
+        const slide = (p, c, f, a0, cnt) => {
+          const lo = a0.sub(n / 2).mul(vx), hi = a0.add(cnt).sub(n / 2).mul(vx);
+          const far = T.step(0.5, p.div(vx).add(n / 2).sub(c)), last = T.step(a0.add(cnt).sub(1.5), c);
+          return T.clamp(T.mix(p.sub(f.mul(vx)), hi, far.mul(last)), lo, hi);
+        };
+        const px = slide(T.positionLocal.x, cx, G.sub.x, G.x0, G.cols), pz = slide(T.positionLocal.z, cz, G.sub.y, G.z0, G.rows);
+        m.positionNode = T.vec3(px, y.mul(U.voxel), pz).mul(own);
         // FOV: scale the projection (clip xy) — a lens, since the scene camera's own FOV can't be set from here
         const clip = T.cameraProjectionMatrix.mul(T.modelViewMatrix.mul(T.vec4(T.positionLocal, 1)));
         m.vertexNode = T.vec4(clip.xy.mul(G.lens), clip.zw);
@@ -185,7 +194,7 @@ export async function createPlaceView(spline, o) {
         const wall = T.float(1).sub(T.step(0.5, T.normalWorld.y));
         const below = wall.mul(T.step(T.positionWorld.y, vTerr.sub(U.voxel.mul(0.02))));
         const v = T.mix(vRow, T.mix((ROW.land + 0.5) / ROW_COUNT, (ROW.cut + 0.5) / ROW_COUNT, T.step(0.5, vEdge)), below);
-        return { v, u: vU, g: T.varying(topV), field: { h: heightAt, n } }; // g: 0 at a wall's foot, 1 at its top (the clay gradient)
+        return { v, u: vU, g: T.varying(topV), field: { h: heightAt, n }, shift: T.vec3(G.sub.x.mul(vx), 0, G.sub.y.mul(vx)) }; // g: 0 at a wall's foot, 1 at its top (the clay gradient)
       },
     })
   );
@@ -320,8 +329,10 @@ export async function createPlaceView(spline, o) {
     async restyleFrame() { await rebuildFrame(); },
     /** Move the window across the map, in cells; streams new data near the edge. */
     pan(dx, dz) {
-      const off = G.off.value, max = W - n;
-      off.set(Math.min(max, Math.max(0, off.x + dx)), Math.min(max, Math.max(0, off.y + dz)));
+      const off = G.off.value, sub = G.sub.value, max = W - n;
+      // whole cells go to the sampling offset, the fraction to the slide (0 against the data's edge)
+      const tx = Math.min(max, Math.max(0, off.x + sub.x + dx)), tz = Math.min(max, Math.max(0, off.y + sub.y + dz));
+      off.set(Math.floor(tx), Math.floor(tz)); sub.set(tx - Math.floor(tx), tz - Math.floor(tz));
       const margin = n * 0.25;
       if (off.x < margin || off.y < margin || off.x > max - margin || off.y > max - margin) stream();
       o.onCenter?.(centerOf());
