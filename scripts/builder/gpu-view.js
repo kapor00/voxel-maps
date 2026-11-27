@@ -122,7 +122,7 @@ export async function createPlaceView(spline, o) {
           const is = (k) => T.step(k - 0.5, G.shape).mul(T.step(G.shape, k + 0.5));
           const round = is(1).add(is(2)), isl = is(3), hex = is(4);
           const m = is(0).add(round.mul(T.step(r, 1))).add(isl.mul(T.step(r, coast))).add(hex.mul(T.step(hexD, 0.98)));
-          return { m, r, edge: T.mix(1, coast, isl), isl, drop: is(2).mul(G.domeK).mul(r.mul(r)) };
+          return { m, r, edge: T.mix(1, coast, isl), isl, drop: T.round(is(2).mul(G.domeK).mul(r.mul(r))) }; // whole voxels: tops stay on the grid
         };
         const idx = T.uv().x, topV = T.uv().y;
         const cx = T.mod(idx, n), cz = T.floor(idx.div(n));
@@ -155,10 +155,11 @@ export async function createPlaceView(spline, o) {
         };
         const C = column(cx, cz), own = inside(cx, cz);
         const nx = cx.add(T.round(nl.x)), nz = cz.add(T.round(nl.z)), nIn = inside(nx, nz), N2 = column(nx, nz);
-        const nh = T.mix(T.mix(C.h, 0, G.crop), N2.h, nIn);
+        // heights after the dome's drop, the neighbour's own drop included, so shared walls meet exactly
+        const hD = C.h.sub(C.sh.drop), nhD = T.mix(T.mix(hD, T.float(0).sub(C.sh.drop), G.crop), N2.h.sub(N2.sh.drop), nIn);
         const isTop = T.step(0.5, nl.y);
-        const y = T.mix(T.min(C.h, nh), C.h, T.max(topV, isTop));
-        m.positionNode = T.vec3(T.positionLocal.x, y.sub(C.sh.drop).mul(U.voxel), T.positionLocal.z).mul(own);
+        const y = T.mix(T.min(hD, nhD), hD, T.max(topV, isTop));
+        m.positionNode = T.vec3(T.positionLocal.x, y.mul(U.voxel), T.positionLocal.z).mul(own);
         // FOV: scale the projection (clip xy) — a lens, since the scene camera's own FOV can't be set from here
         const clip = T.cameraProjectionMatrix.mul(T.modelViewMatrix.mul(T.vec4(T.positionLocal, 1)));
         m.vertexNode = T.vec4(clip.xy.mul(G.lens), clip.zw);
@@ -179,7 +180,7 @@ export async function createPlaceView(spline, o) {
         const bu = T.mix(T.mix(hsh, C.bid.div(256), T.step(0.5, C.bid)).mul(0.83), T.min(T.float(1), C.bldM.sub(60).div(140)).mul(0.14).add(0.86), tower);
         rowIdx = T.mix(rowIdx, ROW.building, C.isB); uval = T.mix(uval, bu, C.isB);
         const vRow = T.varying(rowIdx.add(0.5).div(ROW_COUNT)), vU = T.varying(uval);
-        const vTerr = T.varying(C.t.mul(U.voxel)), vEdge = T.varying(T.float(1).sub(nIn).mul(G.crop).mul(T.float(1).sub(isTop)));
+        const vTerr = T.varying(C.t.sub(C.sh.drop).mul(U.voxel)), vEdge = T.varying(T.float(1).sub(nIn).mul(G.crop).mul(T.float(1).sub(isTop)));
         // fragment: below the terrain, walls are rock — strata on the crop's cut, cliffs (the side row) inside
         const wall = T.float(1).sub(T.step(0.5, T.normalWorld.y));
         const below = wall.mul(T.step(T.positionWorld.y, vTerr.sub(U.voxel.mul(0.02))));
@@ -243,10 +244,8 @@ export async function createPlaceView(spline, o) {
       if (P.vitrine > 0) {
         const h = Math.max(heightNow() * 1.15, n * vx * 0.4) * P.vitrine, t = Math.max(0.35, n * vx * 0.001);
         for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(F, cxw + (sx * w) / 2, h / 2, czw + (sz * d) / 2, t, h, t);
-        for (const yy of [0, h]) {
-          for (const sz of [-1, 1]) box(F, cxw, yy, czw + (sz * d) / 2, w, t, t);
-          for (const sx of [-1, 1]) box(F, cxw + (sx * w) / 2, yy, czw, t, t, d);
-        }
+        for (const sz of [-1, 1]) box(F, cxw, h, czw + (sz * d) / 2, w + t, t, t); // top bars only: bottom ones z-fought the pedestal
+        for (const sx of [-1, 1]) box(F, cxw + (sx * w) / 2, h, czw, t, t, d - t);
       }
     } else if (P.shape === 'cylinder' || P.shape === 'hex') {
       // a plinth that follows the outline (a 64-sided ring, or six sides)

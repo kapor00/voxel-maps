@@ -305,7 +305,7 @@ export function styleUniformValues(style) {
     // bevelled voxel edges, subsurface wrap, specular (clay sheen, glossy glass towers), exposure
     sunAz: style.sunAz ?? -60, sunEl: style.sunEl ?? 33, sunI: style.sunI ?? 0.85, ambI: style.ambI ?? 0.85,
     shadow: style.shadow ?? 0.8, soft: style.soft ?? 6, ao: style.ao ?? 0.75, bevel: style.bevel ?? 0.45,
-    sss: style.sss ?? 0.35, spec: style.spec ?? 0.3, exposure: style.exposure ?? 1,
+    sss: style.sss ?? 0.35, spec: style.spec ?? 0.3, exposure: style.exposure ?? 1, fadeMix: style.fadeMix ?? 1,
   };
 }
 
@@ -338,7 +338,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     grad: T.uniform(v0.grad), deep: T.uniform(col(v0.deep)), rim: T.uniform(v0.rim), rimColor: T.uniform(col(v0.rimColor)), sheen: T.uniform(v0.sheen),
     top: T.uniform(voxel * 80), // world height the vertical gradient spans (gpu-view keeps it at the terrain's top)
     sun: T.uniform(new three.Vector3(0, 1, 0)), sunI: T.uniform(v0.sunI), ambI: T.uniform(v0.ambI), shadow: T.uniform(v0.shadow), soft: T.uniform(v0.soft),
-    ao: T.uniform(v0.ao), bevel: T.uniform(v0.bevel), sss: T.uniform(v0.sss), spec: T.uniform(v0.spec), exposure: T.uniform(v0.exposure),
+    ao: T.uniform(v0.ao), bevel: T.uniform(v0.bevel), sss: T.uniform(v0.sss), spec: T.uniform(v0.spec), exposure: T.uniform(v0.exposure), fadeMix: T.uniform(v0.fadeMix),
   };
   const sunDir = { az: v0.sunAz, el: v0.sunEl };
   const aimSun = () => { const a = (sunDir.az * Math.PI) / 180, e = (sunDir.el * Math.PI) / 180; U.sun.value.set(Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)); };
@@ -422,7 +422,9 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     const p0 = T.vec3(P.x.add(half), P.y, P.z.add(half)).add(N.mul(0.04));
     const hAt = (x, z) => F.h(T.floor(x), T.floor(z));
     let res = T.float(1);
-    const jit = T.interleavedGradientNoise(T.screenCoordinate.xy).mul(0.4).add(0.8); // per-pixel step jitter: noise, not streaks
+    // step jitter anchored to the surface (not the screen), so it doesn't crawl when the camera moves
+    const wq = T.floor(T.positionWorld.div(U.voxel.mul(0.125)));
+    const jit = T.fract(T.sin(T.dot(wq, T.vec3(12.9898, 78.233, 37.719))).mul(43758.5453)).mul(0.4).add(0.8);
     for (let i = 1; i <= 22; i++) {
       const t = jit.mul(0.35 + i * 0.85 + i * i * 0.07); // steps grow: crisp contact shadows, long mountain ones
       const sp = p0.add(L.mul(t));
@@ -465,7 +467,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
   const f = T.abs(T.fract(q).sub(0.5));
   const seam = (fa, wa, na) => T.smoothstep(T.float(0.5).sub(wa.mul(1.2)).sub(0.03), 0.5, fa).mul(T.abs(na).oneMinus());
   const e = T.max(T.max(seam(f.x, w.x, N.x), seam(f.y, w.y, N.y)), seam(f.z, w.z, N.z));
-  const edgeFade = T.float(1).sub(T.smoothstep(0.18, 0.45, T.max(T.max(w.x, w.y), w.z)));
+  const edgeFade = T.float(1).sub(T.smoothstep(0.1, 0.3, T.max(T.max(w.x, w.y), w.z))); // fade seams early: no moiré in the distance
   const edge = T.mix(1, U.edge, e.mul(edgeFade).mul(T.float(1).sub(waterTop))); // no grid on water
   // strata: a fine dark line between bands, also faded with distance
   const bandLine = T.smoothstep(T.float(1).sub(w.y.mul(1.5)).sub(0.02), 1, T.fract(level.add(T.fract(q.y)).div(U.band))).mul(isCut).mul(edgeFade);
@@ -509,7 +511,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
 
   // immersive: dissolve toward the background with distance from the centre (dithered, so no sorting issues)
   const k = T.smoothstep(U.fadeStart, 1, T.length(T.positionWorld.xz).div(U.fadeRadius)).mul(U.fade);
-  out = T.mix(out, U.background, k);
+  out = T.mix(out, U.background, k.mul(U.fadeMix)); // fadeMix 0: dissolve only, so Spline's sky/fog show through
   m.opacityNode = T.step(T.interleavedGradientNoise(T.screenCoordinate.xy), T.float(1).sub(k.mul(k)));
   m.alphaTest = 0.5;
   m.colorNode = out;
@@ -520,7 +522,7 @@ export function voxelMaterial(three, style, { voxel, band = 3, fade, hook } = {}
     uniforms: U,
     /** Live tweaks: any of styleUniformValues' keys, plus voxel, band, fade { radius, start } | null. */
     set(o) {
-      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint', 'hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'rim', 'sheen', 'top', 'sunI', 'ambI', 'shadow', 'soft', 'ao', 'bevel', 'sss', 'spec', 'exposure']) if (o[k2] != null) U[k2].value = +o[k2];
+      for (const k2 of ['voxel', 'band', 'edge', 'water', 'waves', 'reflect', 'foam', 'glints', 'glow', 'windows', 'tint', 'hue', 'sat', 'bright', 'contrast', 'warm', 'grad', 'rim', 'sheen', 'top', 'sunI', 'ambI', 'shadow', 'soft', 'ao', 'bevel', 'sss', 'spec', 'exposure', 'fadeMix']) if (o[k2] != null) U[k2].value = +o[k2];
       if (o.sunAz != null || o.sunEl != null) { if (o.sunAz != null) sunDir.az = +o.sunAz; if (o.sunEl != null) sunDir.el = +o.sunEl; aimSun(); }
       for (const k2 of ['key', 'fill', 'sky', 'background', 'windowColor', 'deep', 'rimColor']) if (o[k2]) setColor(U[k2], o[k2]);
       if (o.tints) o.tints.forEach((t, i) => { if (U.tints[i]) { setColor(U.tints[i].color, t.color); U.tints[i].amount.value = t.amount; } });

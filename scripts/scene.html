@@ -134,7 +134,7 @@
     // ── edit these ──
     const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'clay', frame: 'crop' };
     const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
-    const SCENE = { ui: true, backdrop: true, worldWidth: 614 }; // show the panel, a backdrop that follows the theme, world units across
+    const SCENE = { ui: true, backdrop: true, sky: false, worldWidth: 614 }; // show the panel, a backdrop that follows the theme, world units across
     const BUNDLE = 'https://cdn.jsdelivr.net/gh/kapor00/place-to-3d@main/scripts/place-scene.bundle.js';
 
     const $ = (id) => document.getElementById(id);
@@ -154,7 +154,7 @@
       slab: PLACE.base ? Math.round((PLACE.base / (PLACE.n || 384)) * 100) : 6, fx: {},
     };
     const clone = (o) => JSON.parse(JSON.stringify(o));
-    const setLook = (key) => { look = clone(SP.STYLES[key] || SP.STYLES.strata); S.fx = SP.styleUniformValues(look); };
+    const setLook = (key) => { look = clone(SP.STYLES[key] || SP.STYLES.strata); S.fx = SP.styleUniformValues(look); if (SCENE.sky) S.fx.fadeMix = 0; };
     const applyLook = () => { S.fx.background = look.background; view?.setLook(look); view?.setFx(S.fx); backdrop?.set(look.background); };
 
     // Only the place, its size and its detail fetch data; everything else is a uniform on the live view.
@@ -576,7 +576,7 @@
     async function run() {
       SP = window.SplinePlace; setLook(PLACE.style || 'strata');
       await spline.ready;
-      if (SCENE.backdrop) backdrop = await SP.createBackdrop(spline, look.background);
+      if (SCENE.backdrop && !SCENE.sky) backdrop = await SP.createBackdrop(spline, look.background);
       orbit = await SP.createOrbit(spline, { ...ORBIT, extent: SCENE.worldWidth, dist: ORBIT.dist ?? (PLACE.frame === 'immersive' ? 0.6 : 1.45) });
       initPanel(); initControls();
       job = job.then(load);
