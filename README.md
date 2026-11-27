@@ -1,30 +1,29 @@
-# Place to 3D: turn any place on Earth into a 3D world
+# Voxel Maps: turn any place on Earth into a voxel world
 
 An agent skill for **Claude Code, Codex, Cursor and ChatGPT** that builds any
 real place, from a street corner to the Grand Canyon, as a live voxel
-**3D world in [Spline](https://spline.design/?utm_source=github&utm_medium=readme&utm_campaign=place-to-3d)**:
+**3D world in [Spline](https://spline.design/?utm_source=github&utm_medium=readme&utm_campaign=voxel-maps)**:
 real terrain, real building heights, parks, forests, roads and rivers, lit by
 a sun you can move, in a scene you can restyle, explore, share and export. No
 3D design experience needed.
 
 ![Budapest in the Clay theme, orbiting in its vitrine, built by an agent in Spline](assets/budapest-clay-orbit.gif)
 
-> "Make a 3D map of downtown Budapest."
+> "Make a voxel map of downtown Budapest."
 > "Turn my hometown into a white architectural model."
 > "Build Mount Fuji in autumn colours."
 
 ## Watch it
 
-[![Place to 3D: a prompt becomes Lisbon in Spline, then a minute of live features and fourteen places](assets/place-to-3d.jpg)](assets/place-to-3d.mp4)
+[![Voxel Maps: a bento of places, flights over landmark cities, live features and Spline's own effects](assets/voxel-maps.jpg)](assets/voxel-maps.mp4)
 
-91 seconds ([place-to-3d.mp4](assets/place-to-3d.mp4), with an original dub techno score): an agent
-turns "Make a 3D map of Lisbon" into a Spline file; a bento of places, mountains to megacities;
-the scene running inside the Spline editor; immersive flights from the overview down to street
-level over Manhattan and Hong Kong; the live features (dragging the map through the volume,
-themes, volume shapes, width/height/depth); a GLB exported from the terminal with the Spline MCP
-server connected, dropped into Spline, recoloured one class at a time and zoomed into to the
-voxels; Spline's own sky, fog, ambient occlusion and depth of field on the Matterhorn, set by the
-agent over MCP; and a grid of sixteen places.
+91 seconds ([voxel-maps.mp4](assets/voxel-maps.mp4), with an original dub techno score): a bento of
+places, mountains to megacities; a flight down into Manhattan and Hong Kong switching from day to
+night; the scene running live inside the Spline editor; the live features on landmark places
+(dragging the map through the volume, width/height/depth on Manhattan, the Matterhorn, Rio and San
+Francisco, themes on Paris, volume shapes on Rome); flights over Paris, London, Tokyo, Sydney, Rome,
+Dubai, Venice, Barcelona and Rio; Spline's own sky, fog, ambient occlusion and depth of field on the
+Matterhorn; and a grid of sixteen places.
 
 ## Light, shadow and clay
 
@@ -158,12 +157,12 @@ in 25 draws.
 ## Install
 
 ```bash
-git clone https://github.com/kapor00/place-to-3d ~/.claude/skills/place-to-3d
+git clone https://github.com/kapor00/voxel-maps ~/.claude/skills/voxel-maps
 ```
 
 For other agents, copy the folder wherever they read skills from (Codex:
 `~/.codex/skills/`; Cursor: your project's rules). The skill drives the
-[Spline MCP server](https://docs.spline.design/generate/spline-mcp-server?utm_source=github&utm_medium=readme&utm_campaign=place-to-3d)
+[Spline MCP server](https://docs.spline.design/generate/spline-mcp-server?utm_source=github&utm_medium=readme&utm_campaign=voxel-maps)
 (`https://mcp.spline.design/mcp`): connect it in your agent and sign in to
 Spline the first time it asks.
 

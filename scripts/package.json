@@ -1,7 +1,7 @@
 {
-  "name": "place-to-3d-scripts",
+  "name": "voxel-maps-scripts",
   "private": true,
   "type": "module",
-  "description": "Geo layer, Spline scene builder and CLI for the place-to-3d skill. No dependencies.",
+  "description": "Geo layer, Spline scene builder and CLI for the voxel-maps skill. No dependencies.",
   "license": "MIT"
 }

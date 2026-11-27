@@ -1,9 +1,9 @@
 ---
-name: place-to-3d
-description: Turn any real place on Earth (a city, neighbourhood, street, mountain, canyon, island or coastline) into an interactive voxel 3D world in Spline, built from real terrain, buildings, parks, forests, roads and water. Use when the user asks for a 3D map, a 3D model or diorama of a real place, "my city / hometown / street in 3D", or voxel terrain of a real location.
+name: voxel-maps
+description: Turn any real place on Earth (a city, neighbourhood, street, mountain, canyon, island or coastline) into an interactive voxel 3D world in Spline, built from real terrain, buildings, parks, forests, roads and water. Use when the user asks for a voxel map or a 3D map, a 3D model or diorama of a real place, "my city / hometown / street in 3D", or voxel terrain of a real location.
 ---
 
-# Place to 3D
+# Voxel Maps
 
 Builds a real place as a voxel world inside a Spline scene: elevation from
 the AWS Terrain Tiles, and buildings (with their mapped heights), roads,

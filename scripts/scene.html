@@ -123,7 +123,7 @@
   <div id="place-status">Loading map data…</div>
   <div id="place-attribution"></div>
   <div id="pt-hint">Drag to move the map · Alt-drag to orbit · Scroll to zoom</div>
-  <button id="pt-open" hidden title="Show the Place to 3D panel">
+  <button id="pt-open" hidden title="Show the Voxel Maps panel">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h10M2 10h10"/><circle cx="5" cy="4" r="1.6" fill="#1e1e1e"/><circle cx="9" cy="10" r="1.6" fill="#1e1e1e"/></svg>
   </button>
   <div id="pt" hidden></div>
@@ -135,7 +135,7 @@
     const PLACE = { name: 'Budapest', lat: 47.507, lon: 19.045, sizeM: 4000, n: 384, style: 'clay', frame: 'crop' };
     const ORBIT = { camera: 'Camera', dist: 1.45, pitch: 27, yaw: 205, speed: 5 };
     const SCENE = { ui: true, backdrop: true, sky: false, worldWidth: 614 }; // show the panel, a backdrop that follows the theme, world units across
-    const BUNDLE = 'https://cdn.jsdelivr.net/gh/kapor00/place-to-3d@main/scripts/place-scene.bundle.js';
+    const BUNDLE = 'https://cdn.jsdelivr.net/gh/kapor00/voxel-maps@main/scripts/place-scene.bundle.js';
 
     const $ = (id) => document.getElementById(id);
     const status = (t) => ($('place-status').textContent = t);
@@ -371,7 +371,7 @@
     function initPanel() {
       if (!SCENE.ui) return;
       const P = $('pt'); P.hidden = false; P.innerHTML = '';
-      const top = el('div', 'top', '<b id="pt-title"></b><span class="tag">Place to 3D</span>');
+      const top = el('div', 'top', '<b id="pt-title"></b><span class="tag">Voxel Maps</span>');
       const hide = el('button', 'icon', '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4"><path d="M2 2l6 6M8 2L2 8"/></svg>');
       hide.title = 'Hide the panel'; hide.onclick = () => { P.hidden = true; $('pt-open').hidden = false; };
       $('pt-open').onclick = () => { P.hidden = false; $('pt-open').hidden = true; };

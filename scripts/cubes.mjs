@@ -69,7 +69,7 @@ const MATS = used.map((m) => [m, M[m].color, M[m].roughness]);
 const files = [];
 const write = (file, code) => { fs.writeFileSync(path.join(out, file), code); files.push([file, code.length]); };
 write('00-materials.js', [
-  `// Place to 3D cubes: ${name} — one material asset per class (shared with the .glb names)`,
+  `// Voxel Maps cubes: ${name} — one material asset per class (shared with the .glb names)`,
   `const M = ${JSON.stringify(MATS)};`,
   `for (const [m, c, r] of M) { mesh('Cube', { width: 10, height: 10, depth: 10 }); color(c); shading({ category: 'physical', roughness: r, metalness: 0 }); createMaterial(${JSON.stringify(prefix + ' ')} + m); remove(); }`,
   `background(${JSON.stringify(style.background)});`,
@@ -77,7 +77,7 @@ write('00-materials.js', [
 ].join('\n'));
 const C = { n, zA, zB, voxel, offX: (-n * voxel) / 2, offZ: (-n * voxel) / 2, crop, band: Math.max(2, Math.round(base / 5)), prefix, names, sides, size: +flag('gap', 0.94), round: +flag('round', 0.12) };
 write('01-cubes.js', [
-  `// Place to 3D cubes: ${name} — ${n}×${rowsN} columns as cube instances`,
+  `// Voxel Maps cubes: ${name} — ${n}×${rowsN} columns as cube instances`,
   [inflate, b64, cubeBuild].map((f) => f.toString()).join('\n'),
   `const C = ${JSON.stringify(C)};`,
   `const D = '${data}';`,

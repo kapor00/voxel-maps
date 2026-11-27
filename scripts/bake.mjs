@@ -71,7 +71,7 @@ const write = (file, code) => { fs.writeFileSync(path.join(out, file), code); fi
 
 // 1. setup: material assets, background
 write('00-setup.js', [
-  `// Place to 3D bake: ${name} — material assets (one per class, editable in Spline)`,
+  `// Voxel Maps bake: ${name} — material assets (one per class, editable in Spline)`,
   `const M = ${JSON.stringify(MATS)};`,
   `for (const [m, c, r] of M) { mesh('Cube', { width: 10, height: 10, depth: 10 }); color(c); shading({ category: 'physical', roughness: r, metalness: 0 }); createMaterial(${JSON.stringify(prefix + ' ')} + m); remove(); }`,
   `background(${JSON.stringify(style.background)});`,
@@ -102,7 +102,7 @@ for (let r0 = zA; r0 < zB;) {
   const back = inflate(b64(p.data));
   if (back.length !== p.raw.length || back.some((v, i) => v !== p.raw[i])) throw new Error('payload round-trip failed');
   write(`${String(id).padStart(2, '0')}-band.js`, [
-    `// Place to 3D bake: ${name} — rows ${C.r0}–${C.r1} of ${zA}–${zB - 1}`,
+    `// Voxel Maps bake: ${name} — rows ${C.r0}–${C.r1} of ${zA}–${zB - 1}`,
     fnSrc,
     `const C = ${JSON.stringify(C)};`,
     `const D = '${p.data}';`,
@@ -131,9 +131,9 @@ if (crop) {
     );
   }
 }
-write(`${String(id++).padStart(2, '0')}-frame.js`, [`// Place to 3D bake: ${name} — ${crop ? 'pedestal and wireframe' : 'nothing to add (immersive)'}`, ...frameLines, `report({ frame: ${crop} });`].join('\n'));
+write(`${String(id++).padStart(2, '0')}-frame.js`, [`// Voxel Maps bake: ${name} — ${crop ? 'pedestal and wireframe' : 'nothing to add (immersive)'}`, ...frameLines, `report({ frame: ${crop} });`].join('\n'));
 write(`${String(id++).padStart(2, '0')}-group.js`, [
-  `// Place to 3D bake: ${name} — group and frame the view`,
+  `// Voxel Maps bake: ${name} — group and frame the view`,
   `select(o => o.name.startsWith(${JSON.stringify(prefix + ' ')}) && !o.isCamera && !o.isLight);`,
   `group();`,
   `rename(${JSON.stringify(name + ' (baked)')});`,

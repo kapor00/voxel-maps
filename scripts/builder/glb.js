@@ -166,7 +166,7 @@ export function placeToGLB(cols, style, { voxel = 1.2, frame = 'crop', aspect = 
 /** Buckets → GLB bytes. Each bucket becomes one node per ≤65,532 vertices (uint16 indices). */
 function writeGLB(name, B, M) {
   const LIMIT = 65532;
-  const json = { asset: { version: '2.0', generator: 'place-to-3d' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name, children: [] }], meshes: [], materials: [], accessors: [], bufferViews: [] };
+  const json = { asset: { version: '2.0', generator: 'voxel-maps' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name, children: [] }], meshes: [], materials: [], accessors: [], bufferViews: [] };
   const parts = [];
   let offset = 0, vertices = 0;
   const view = (bytes, target) => {
