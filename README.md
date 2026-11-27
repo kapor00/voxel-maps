@@ -13,15 +13,15 @@ a sun you can move, in a scene you can restyle, explore, share and export. No
 > "Turn my hometown into a white architectural model."
 > "Build Mount Fuji in autumn colours."
 
-## Watch the walkthrough
+## Watch it
 
-[![Two-minute walkthrough of the live panel: drag the map, switch themes, move the sun, search any place, save a .glb](assets/walkthrough.jpg)](assets/walkthrough.mp4)
+[![Place to 3D: a prompt becomes Lisbon in Spline, then a minute of live features and fourteen places](assets/place-to-3d.jpg)](assets/place-to-3d.mp4)
 
-Two minutes, recorded from the running scene ([walkthrough.mp4](assets/walkthrough.mp4)):
-drag the map through the volume, orbit and zoom, reshape it, switch themes,
-recolour a whole class from one swatch, sweep the sun with live shadows, tune
-the clay materials, go immersive, open a featured place, search for Lisbon
-and save a .glb.
+75 seconds ([place-to-3d.mp4](assets/place-to-3d.mp4), with an original dub techno score): an agent
+turns "Make a 3D map of Lisbon" into a Spline file, the scene runs inside the Spline editor, then
+the live features one by one: dragging the map through the volume, the sun and its shadows,
+themes, volume shapes, width/height/depth, field of view, clay materials and .glb export, and
+a bento and a grid of places in every theme and shape.
 
 ## Light, shadow and clay
 
